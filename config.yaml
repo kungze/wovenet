@@ -1,0 +1,67 @@
+# The site name must be unique
+siteName: site01
+
+logger:
+  level: DEBUG
+  file: "/var/log/wovenet.log"
+  format: json
+
+messageChannel:
+  # Currently, we only support mqtt protocol
+  protocol: mqtt
+  # The 16 bit key used to encrypt message payload, Strongly suggest you change it.
+  # The string lenght must equal 16
+  cryptoKey: "Ytew12TYds!dsd5)"
+  mqtt:
+    # mqtt brokcer server
+    brokerServer: mqtt://mqtt.eclipseprojects.io:1883
+    # This is important, you are strongly suggested to change this.
+    # If you config same topic for different sites, this site will
+    # try to connect to each other and establish tunnel
+    # In other words, the same topic sites will join the same network
+    topic: "kungze/wovenet/your-own-private-topic"
+
+tunnel:
+  # the local site will listen on these sockets, remote sites will
+  # try to connect to these sockets to establish tunnel with the local
+  # site
+  localSockets:
+  # dedicated-address the local machine bind a dedicated public address
+  # There are two cases:
+  # 1. The dedicated public address set on the local machine network interface
+  # directly. In this case, the publicAddress should equal listenAddress
+  # 2. The dedicated public address bond to the local machine by floating ip
+  # or EIP(elastic ip). In this case, publicAddress must be set, listenAddress
+  # can be remain empty.
+  - mode: dedicated-address
+    transportProtocol: tcp
+    publicAddress: 240e:362:a0e:640c:d620:ff:feb3:a916
+    listenAddress: 240e:362:a0e:640c:d620:ff:feb3:a916
+    listenPort: 54234
+  # port-forwarding the local machine don't have dedicated public address,
+  # but the NAT gateway has a dedicated public address, and we can config
+  # port mapping on NAT gateway for the local machine
+  - mode: port-forwarding
+    transportProtocol: quic
+    publicAddress: 36.25.107.126
+    publicPort: 26726
+    listenAddress: 172.26.142.105
+    listenPort: 16875
+
+# Specify which applications can be accessed by remote sites.
+# Wovenet us id to identify a specified application
+localExposedApps:
+- socket: /var/run/app.sock
+  id: 1562160a-7e84-4d32-8912-d8bdc96f47aa
+- socket: 127.0.0.1:22
+  id: 16d86618-d4f3-4221-9ed2-7f4534774082
+
+# Specify the local site can access which remote applications
+# external local client can access these applications by connect to particular localSocket
+remoteApps:
+- siteName: site02
+  remoteAppId: 2559c7cf-b571-42ca-81ee-8de47515c6c5
+  localSocket: 127.0.0.1:28080
+- siteName: site03
+  remoteAppId: 86d7cc3b-8eef-43e2-8625-4ad30f0cfb8f
+  localSocket: /var/run/wovenet/app.sock
