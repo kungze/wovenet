@@ -11,8 +11,13 @@ import (
 )
 
 func InitLogging() error {
-	var cfg Config
-	err := viper.UnmarshalKey("logger", &cfg)
+	cfg := &Config{}
+	err := viper.UnmarshalKey("logger", cfg)
+	if err != nil {
+		return err
+	}
+
+	cfg, err = CheckAndSetDefaultConfig(*cfg)
 	if err != nil {
 		return err
 	}
@@ -30,20 +35,22 @@ func InitLogging() error {
 	var programLevel = new(slog.LevelVar)
 	var logger *slog.Logger
 	switch strings.ToLower(cfg.Format) {
-	case "json":
+	case JSON:
 		logger = slog.New(slog.NewJSONHandler(output, &slog.HandlerOptions{Level: programLevel}))
-	default:
+	case TEXT:
 		logger = slog.New(slog.NewTextHandler(output, &slog.HandlerOptions{Level: programLevel}))
+	default:
+		return fmt.Errorf("unsupported log format")
 	}
 	slog.SetDefault(logger)
-	switch strings.ToLower(cfg.Level) {
-	case "info":
+	switch strings.ToUpper(cfg.Level) {
+	case INFO:
 		programLevel.Set(slog.LevelInfo)
-	case "warn":
+	case WARN:
 		programLevel.Set(slog.LevelWarn)
-	case "error":
+	case ERROR:
 		programLevel.Set(slog.LevelError)
-	case "debug":
+	case DEBUG:
 		programLevel.Set(slog.LevelDebug)
 	default:
 		return fmt.Errorf("unsupported log level: %s", cfg.Level)
