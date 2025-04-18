@@ -11,7 +11,7 @@ messageChannel:
   protocol: mqtt
   # The 16 bit key used to encrypt message payload, Strongly suggest you change it.
   # The string lenght must equal 16
-  cryptoKey: "Ytew12TYds!dsd5)"
+  cryptoKey: "Ytew12TYds!dsd5("
   mqtt:
     # mqtt brokcer server
     brokerServer: mqtt://mqtt.eclipseprojects.io:1883
@@ -34,7 +34,7 @@ tunnel:
   # or EIP(elastic ip). In this case, publicAddress must be set, listenAddress
   # can be remain empty.
   - mode: dedicated-address
-    transportProtocol: tcp
+    transportProtocol: quic
     publicAddress: 240e:362:a0e:640c:d620:ff:feb3:a916
     listenAddress: 240e:362:a0e:640c:d620:ff:feb3:a916
     listenPort: 54234

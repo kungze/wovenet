@@ -3,6 +3,7 @@ package message
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"gihtub.com/kungze/wovenet/internal/logger"
 )
@@ -26,8 +27,8 @@ type MessageClient interface {
 func NewMessageClient(ctx context.Context, config Config, siteName string) (MessageClient, error) {
 	log := logger.GetDefault()
 	log.Info("creating new message client", "protocol", config.Protocol)
-	switch config.Protocol {
-	case "mqtt":
+	switch strings.ToLower(config.Protocol) {
+	case MQTT:
 		client, err := newMqttClient(ctx, config.Mqtt, siteName, config.CryptoKey)
 		if err != nil {
 			log.Error("failed to create mqtt client", "error", err)

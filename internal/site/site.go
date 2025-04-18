@@ -237,16 +237,18 @@ func (s *Site) onNewStream(stream tunnel.Stream) {
 
 func NewSite(ctx context.Context) (*Site, error) {
 	log := logger.GetDefault()
-	config := Config{}
-	err := viper.Unmarshal(&config)
+	config := &Config{}
+	err := viper.Unmarshal(config)
 	if err != nil {
 		log.Error("failed to unmarshals the config into a struct", "error", err)
 		return nil, err
 	}
 
-	if len(config.SiteName) > 255 {
-		return nil, fmt.Errorf("sit name: %s is too long", config.SiteName)
+	config, err = CheckAndSetDefaultConfig(*config)
+	if err != nil {
+		return nil, fmt.Errorf("config error: %w", err)
 	}
+
 	log.Info("new local site", "siteName", config.SiteName)
 	site := &Site{
 		siteName:    config.SiteName,
