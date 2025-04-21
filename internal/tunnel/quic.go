@@ -23,7 +23,7 @@ type quicConn struct {
 
 // OpenStream opens a new bidirectional stream.
 func (qc *quicConn) OpenStream(ctx context.Context) (Stream, error) {
-	return qc.Connection.OpenStreamSync(ctx)
+	return qc.OpenStreamSync(ctx)
 }
 
 // AcceptStream returns the next stream opened by the peer, blocking until one is available.

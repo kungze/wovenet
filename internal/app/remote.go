@@ -33,7 +33,10 @@ func (ra *remoteApp) listen(ctx context.Context, callback ClientConnectedCallbac
 	go func() {
 		defer func() {
 			ra.active.Store(false)
-			l.Close()
+			err := l.Close()
+			if err != nil {
+				log.Error("failed to close local socket listener for remote app", "localSocket", ra.config.LocalSocket, "remoteSite", ra.config.SiteName, "remoteAppId", ra.config.RemoteAppId, "error", err)
+			}
 		}()
 		for {
 			select {
@@ -62,7 +65,10 @@ func (ra *remoteApp) Active() bool {
 func (ra *remoteApp) stop() {
 	log := logger.GetDefault()
 	log.Info("stop local socket listen", "remoteSite", ra.config.SiteName, "appId", ra.config.RemoteAppId, "localSocket", ra.config.LocalSocket)
-	ra.listener.Close()
+	err := ra.listener.Close()
+	if err != nil {
+		log.Error("failed to close local socket", "localSocket", ra.config.LocalSocket, "remoteSite", ra.config.SiteName, "remoteAppId", ra.config.RemoteAppId, "error", err)
+	}
 	ra.stopCh <- true
 }
 
