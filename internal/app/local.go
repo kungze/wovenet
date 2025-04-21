@@ -18,11 +18,6 @@ func (la *localApp) GetConnection() (net.Conn, error) {
 	return conn, nil
 }
 
-// TODO (jeffyjf) check the local app whether or not is active.
-// If it is not active, we should announce to remote sites
-func (la *localApp) check() {
-}
-
 func newLocalApp(config LocalExposedAppConfig) *localApp {
 	return &localApp{config: config}
 }

@@ -122,8 +122,13 @@ func (s *Site) onRemoteSiteConnected(ctx context.Context, remoteSite string) err
 // onNewClientConnection callback function, which will be called when an external client connects to the
 // local socket which is listened for remote app
 func (s *Site) onNewClientConnection(remoteSite string, remoteApp string, conn io.ReadWriteCloser) {
-	defer conn.Close()
 	log := logger.GetDefault()
+
+	defer func() {
+		if err := conn.Close(); err != nil {
+			log.Error("failed to close connection", "remoteSite", remoteSite, "remoteApp", remoteApp, "error", err)
+		}
+	}()
 
 	// Open a new strem in the tunnel which link the local site and the remote site
 	// which the remote app is located in
@@ -132,7 +137,7 @@ func (s *Site) onNewClientConnection(remoteSite string, remoteApp string, conn i
 		log.Error("failed to open a new stream", "remoteSite", remoteSite, "error", err)
 		return
 	}
-	defer stream.Close()
+	defer stream.Close() //nolint:errcheck
 
 	// Prepare the handshake data, to tell remote site we want to connect to which app
 	data := []byte(remoteApp)
@@ -152,8 +157,8 @@ func (s *Site) onNewClientConnection(remoteSite string, remoteApp string, conn i
 	wg.Add(2)
 	go func() {
 		defer wg.Done()
-		defer conn.Close()
-		defer stream.Close()
+		defer conn.Close()   //nolint:errcheck
+		defer stream.Close() //nolint:errcheck
 		_, err := io.Copy(conn, stream)
 		if err != nil {
 			log.Error("failed to copy data from tunnel stream to local client",
@@ -164,8 +169,8 @@ func (s *Site) onNewClientConnection(remoteSite string, remoteApp string, conn i
 	}()
 	go func() {
 		defer wg.Done()
-		defer conn.Close()
-		defer stream.Close()
+		defer conn.Close()   //nolint:errcheck
+		defer stream.Close() //nolint:errcheck
 		_, err := io.Copy(stream, conn)
 		if err != nil {
 			log.Error("failed to copy data from local client to tunnel stream",
@@ -181,7 +186,7 @@ func (s *Site) onNewClientConnection(remoteSite string, remoteApp string, conn i
 // it means that a external client from remote site want to connect to our local app
 func (s *Site) onNewStream(stream tunnel.Stream) {
 	log := logger.GetDefault()
-	defer stream.Close()
+	defer stream.Close() //nolint:errcheck
 	// Read handshake data, the handshake data indicates the remote client
 	// want to access which app
 	buff := make([]byte, 1024)
@@ -202,7 +207,7 @@ func (s *Site) onNewStream(stream tunnel.Stream) {
 	if err != nil {
 		log.Error("failed to connect to local app", "appId", appId)
 	}
-	defer conn.Close()
+	defer conn.Close() //nolint:errcheck
 	if n > len+1 {
 		_, err := conn.Write(buff[len+1 : n])
 		if err != nil {
@@ -214,8 +219,8 @@ func (s *Site) onNewStream(stream tunnel.Stream) {
 	wg.Add(2)
 	go func() {
 		defer wg.Done()
-		defer conn.Close()
-		defer stream.Close()
+		defer conn.Close()   //nolint:errcheck
+		defer stream.Close() //nolint:errcheck
 		_, err := io.Copy(conn, stream)
 		if err != nil {
 			log.Error("failed to copy data from tunnel stream to local app", "appId", appId)
@@ -224,8 +229,8 @@ func (s *Site) onNewStream(stream tunnel.Stream) {
 	}()
 	go func() {
 		defer wg.Done()
-		defer conn.Close()
-		defer stream.Close()
+		defer conn.Close()   //nolint:errcheck
+		defer stream.Close() //nolint:errcheck
 		_, err := io.Copy(stream, conn)
 		if err != nil {
 			log.Error("failed to copy data from local app to tunnel stream", "appId", appId)

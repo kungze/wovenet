@@ -50,12 +50,12 @@ func (tm *TunnelManager) listenerLoopAccept(ctx context.Context, listener Listen
 				log.Error("Failed to read handshake data from control stream",
 					"localAddr", listener.Addr().String(),
 					"remoteAddr", conn.RemoteAddr().String(), "error", err)
-				stream.Close()
+				_ = stream.Close()
 				continue
 			}
 			len := int(buf[0])
 			if n != len+1 {
-				stream.Close()
+				_ = stream.Close()
 				continue
 			}
 			// Get remote site name from control stream data
@@ -153,19 +153,19 @@ func (tm *TunnelManager) Dial(ctx context.Context, remoteSite string, socket Soc
 	n, err := stream.Write(append([]byte{len}, data...))
 	if err != nil {
 		log.Error("failed to write date to control stream", "remoteSite", remoteSite, "error", err)
-		stream.Close()
+		_ = stream.Close()
 		conn.Close()
 		return err
 	}
 	if n != int(len)+1 {
-		stream.Close()
+		stream.Close() //nolint:errcheck
 		conn.Close()
 		log.Error("the lenght of data write to control stream is valid", "remoteSite", remoteSite)
 		return fmt.Errorf("write data length is not valid")
 	}
 	if err := tm.remoteSiteConnected(ctx, remoteSite); err != nil {
 		log.Error("failed to process remote site", "remoteSite", remoteSite)
-		stream.Close()
+		stream.Close() //nolint:errcheck
 		conn.Close()
 		return err
 	}
