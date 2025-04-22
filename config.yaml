@@ -72,16 +72,29 @@ tunnel:
   # you can config port mapping on NAT gateway for the local machine on the NAT gateway.
   # In this case, publicAddress，publicPort and listenPort are required. And they must refer
   # to the NAT gateway's port forwarding config
+  # In some cases, the public ip is not fixed, for example, using dynamic ip of broadband
+  # dial-up internet access, or using the elastic ip of cloud service provider, etc.
+  # In this case, the public ip is not fixed, you can config publicAddress as autoXXXDetect,
+  # so that wovenet will auto detect the public ip address. Currently, we only support
+  # http way to get the public ip address, the url of httpDetector is required, and the
+  # content-type of the return result of this url must be text/plain
   # 当 socket 的 mode 设置为 port-forwarding 时，意味着这个本地站点机器没有专有
   # 的公网 IP. 但是这个本地站点的 NAT 网关上有公网 IP，而且你可以在 NAT 网关上设置端口映射。
   # 这种场景 publicAddress，publicPort 和 listenPort 是必须被设置的，而且必须参考 NAT 网关
-  # 上的配置
+  # 上的配置。
+  # 在有些情况下，公网 ip 并不是固定的，比如使用了动态 ip 的宽带拨号上网，或者使用了
+  # 云服务商的弹性 ip 等等，这种情况下，公网 ip 是不固定的，你可以配置 publicAddress 为
+  # autoXXXDetect，这样 wovenet 会自动获取公网 ip 地址，目前我们只支持通过 http 的方式
+  # 获取公网 ip 地址，httpDetector 的 url 是必须被设置的，且这个 url 的返回结果
+  # 的 content-type 必须为 text/plain
   - mode: port-forwarding
     transportProtocol: quic
-    publicAddress: 36.25.107.126
+    publicAddress: autoHttpDetect
     publicPort: 26726
     listenAddress: 172.26.142.105
     listenPort: 16875
+    httpDetector:
+      url: https://ipinfo.io/ip
 
 # Specify which applications can be accessed by remote peer sites.
 # The both options id and socket are required

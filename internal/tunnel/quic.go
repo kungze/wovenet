@@ -82,25 +82,6 @@ func (qs *QuicListener) Accept(ctx context.Context) (Connection, error) {
 	return &quicConn{Connection: conn}, nil
 }
 
-func (qs *QuicListener) GetSocketInfo() (*SocketInfo, error) {
-	log := logger.GetDefault()
-	var address string
-	var port uint16
-	switch qs.Config.PublicAddress {
-	case STUN, HTTP:
-		log.Error("unsuportted method for get public address", "method", qs.Config.PublicAddress)
-		return nil, fmt.Errorf("not implement")
-	default:
-		address = qs.Config.PublicAddress
-		port = qs.Config.PublicePort
-	}
-	return &SocketInfo{
-		Address:  address,
-		Port:     port,
-		Protocol: qs.Config.TransportProtocol,
-	}, nil
-}
-
 func (qs *QuicListener) Addr() net.Addr {
 	return qs.Listener.Addr()
 }
