@@ -14,8 +14,6 @@ type RemoteSiteConnectedCallback func(ctx context.Context, remoteSite string) er
 type NewStreamCallback func(stream Stream)
 
 type Listener interface {
-	// GetSocketInfo return the listener socket's protocol, public ip address and port
-	GetSocketInfo() (*SocketInfo, error)
 	// Accept returns a new connections. It should be called in a loop.
 	Accept(context.Context) (Connection, error)
 	// Addr returns the local network addr that the server is listening on.

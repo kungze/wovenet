@@ -34,7 +34,7 @@ func (s *Site) Start(ctx context.Context) error {
 	}
 
 	// Get the local listenr sockets for others sites to connect to establish tunnels
-	sockets, err := s.tunnelManager.GetLocalSockets()
+	sockets, err := s.tunnelManager.GetLocalSocketInfos()
 	if err != nil {
 		log.Error("failed to get tunnel local sockets", "error", err)
 		return err
@@ -79,7 +79,7 @@ func (s *Site) onExchangeInfoMessage(payload *message.Payload) (any, message.Mes
 
 	// Respond the request message with our base information
 	if payload.Kind == message.ExchangeInfoRequest {
-		sockets, err := s.tunnelManager.GetLocalSockets()
+		sockets, err := s.tunnelManager.GetLocalSocketInfos()
 		if err != nil {
 			log.Error("failed to get tunnel local sockets", "error", err)
 			return nil, "", err

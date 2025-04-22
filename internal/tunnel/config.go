@@ -3,8 +3,13 @@ package tunnel
 import (
 	"fmt"
 	"net/netip"
+	"net/url"
 	"slices"
 )
+
+type HTTPDetector struct {
+	URL string `mapstructure:"url"`
+}
 
 type SocketConfig struct {
 	Mode              SocketMode        `mapstructure:"mode"`
@@ -13,6 +18,7 @@ type SocketConfig struct {
 	PublicePort       uint16            `mapstructure:"publicPort"`
 	ListenAddress     string            `mapstructure:"listenAddress"`
 	ListenPort        uint16            `mapstructure:"listenPort"`
+	HTTPDetector      *HTTPDetector     `mapstructure:"httpDetector"`
 }
 
 type Config struct {
@@ -50,18 +56,32 @@ func CheckAndSetDefaultConfig(config *Config) error {
 		if socket.Mode == PortForwarding && (socket.PublicAddress == "" || socket.PublicePort == 0 || socket.ListenPort == 0) {
 			return fmt.Errorf("the 'publicAddress' and 'publicPort' and 'listenPort' must be set together when the tunnel socket mode set as: %s", PortForwarding)
 		}
-		addr, err := netip.ParseAddr(socket.PublicAddress)
-		if err != nil {
-			return fmt.Errorf("the 'publicAddress' is invalid: %s", err)
-		}
-		if socket.ListenAddress == "" {
-			if addr.Is6() {
-				socket.ListenAddress = "::"
-			} else {
+		switch socket.PublicAddress {
+		case AutoHTTPDetect:
+			if socket.HTTPDetector == nil {
+				return fmt.Errorf("the 'httpDetector' must be set when the 'publicAddress' is set as: %s", AutoHTTPDetect)
+			}
+			_, err := url.Parse(socket.HTTPDetector.URL)
+			if err != nil {
+				return fmt.Errorf("the 'httpDetector' url is invalid: %s", err)
+			}
+			if socket.ListenAddress == "" {
 				socket.ListenAddress = "0.0.0.0"
 			}
+		default:
+			addr, err := netip.ParseAddr(socket.PublicAddress)
+			if err != nil {
+				return fmt.Errorf("the 'publicAddress' is invalid: %s", err)
+			}
+			if socket.ListenAddress == "" {
+				if addr.Is6() {
+					socket.ListenAddress = "::"
+				} else {
+					socket.ListenAddress = "0.0.0.0"
+				}
+			}
 		}
-		_, err = netip.ParseAddr(socket.ListenAddress)
+		_, err := netip.ParseAddr(socket.ListenAddress)
 		if err != nil {
 			return fmt.Errorf("the 'listenAddress' is invalid: %s", err)
 		}

@@ -23,6 +23,6 @@ const (
 )
 
 const (
-	STUN string = "stun"
-	HTTP string = "http"
+	AutoHTTPDetect = "autoHttpDetect"
+	AutoSTUNDetect = "autoStunDetect"
 )
