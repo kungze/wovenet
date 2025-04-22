@@ -11,7 +11,7 @@ import (
 
 type TunnelManager struct {
 	siteName string
-	config   Config
+	config   *Config
 	liteners []Listener
 	// map[remoteSite]*tunnel
 	tunnels             sync.Map
@@ -76,6 +76,10 @@ func (tm *TunnelManager) listenerLoopAccept(ctx context.Context, listener Listen
 // The listeners related to these sockets will be try to setup
 func (tm *TunnelManager) Start(ctx context.Context) error {
 	log := logger.GetDefault()
+	if tm.config == nil || len(tm.config.LocalSockets) == 0 {
+		log.Info("no local socket configured, skip to start local tunnel listeners")
+		return nil
+	}
 	for _, config := range tm.config.LocalSockets {
 		var listener Listener
 		var err error
@@ -189,7 +193,7 @@ func (tm *TunnelManager) GetLocalSockets() ([]SocketInfo, error) {
 }
 
 func NewTunnelManager(
-	siteName string, config Config, newStream NewStreamCallback,
+	siteName string, config *Config, newStream NewStreamCallback,
 	remoteSiteConnected RemoteSiteConnectedCallback,
 	remoteSiteGone RemoteSiteGoneCallback) (*TunnelManager, error) {
 	return &TunnelManager{

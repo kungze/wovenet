@@ -266,7 +266,7 @@ func NewSite(ctx context.Context) (*Site, error) {
 		return nil, err
 	}
 	site.appManager = am
-	tm, err := tunnel.NewTunnelManager(config.SiteName, *config.Tunnel, site.onNewStream, site.onRemoteSiteConnected, site.onRemoteSiteGone)
+	tm, err := tunnel.NewTunnelManager(config.SiteName, config.Tunnel, site.onNewStream, site.onRemoteSiteConnected, site.onRemoteSiteGone)
 	if err != nil {
 		log.Error("failed to create tunnel manager", "error", err)
 		return nil, err
