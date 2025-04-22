@@ -20,6 +20,9 @@ type Config struct {
 }
 
 func CheckAndSetDefaultConfig(config *Config) error {
+	if config == nil {
+		return nil
+	}
 	for _, socket := range config.LocalSockets {
 		if !slices.Contains([]SocketMode{PortForwarding, DedicatedAddress}, socket.Mode) {
 			return fmt.Errorf("unsupported tunnel socket mode: %s", socket.Mode)

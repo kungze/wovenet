@@ -14,6 +14,9 @@ type Config struct {
 }
 
 func CheckAndSetDefaultConfig(config *Config) error {
+	if config == nil {
+		return fmt.Errorf("messageChannel is required")
+	}
 	if !slices.Contains([]string{MQTT}, strings.ToLower(config.Protocol)) {
 		return fmt.Errorf("unsupported message protocol: %s", config.Protocol)
 	}
