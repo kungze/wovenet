@@ -6,6 +6,10 @@ import (
 	"slices"
 )
 
+type HTTPDetector struct {
+	URL string `mapstructure:"url"`
+}
+
 type SocketConfig struct {
 	Mode              SocketMode        `mapstructure:"mode"`
 	TransportProtocol TransportProtocol `mapstructure:"transportProtocol"`
@@ -13,6 +17,7 @@ type SocketConfig struct {
 	PublicePort       uint16            `mapstructure:"publicPort"`
 	ListenAddress     string            `mapstructure:"listenAddress"`
 	ListenPort        uint16            `mapstructure:"listenPort"`
+	HTTPDetector      *HTTPDetector     `mapstructure:"httpDetector"`
 }
 
 type Config struct {

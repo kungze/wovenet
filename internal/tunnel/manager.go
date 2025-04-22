@@ -10,11 +10,10 @@ import (
 )
 
 type TunnelManager struct {
-	siteName string
-	config   Config
-	liteners []Listener
-	// map[remoteSite]*tunnel
-	tunnels             sync.Map
+	siteName            string
+	config              Config
+	localSockets        map[string]*socket
+	tunnels             sync.Map // map[remoteSite]*tunnel
 	remoteSiteGone      RemoteSiteGoneCallback
 	remoteSiteConnected RemoteSiteConnectedCallback
 	newStream           NewStreamCallback
@@ -77,31 +76,20 @@ func (tm *TunnelManager) listenerLoopAccept(ctx context.Context, listener Listen
 func (tm *TunnelManager) Start(ctx context.Context) error {
 	log := logger.GetDefault()
 	for _, config := range tm.config.LocalSockets {
-		var listener Listener
-		var err error
-		switch config.TransportProtocol {
-		case QUIC:
-			listener, err = newQuicListener(config)
-		default:
-			log.Warn("unsuported transport protocol for tunnel", "transportProtocol", config.TransportProtocol)
-			continue
-		}
+		socket := newSocket(*config)
+		tm.localSockets[socket.id] = socket
+		listener, err := socket.Start()
 		if err != nil {
-			log.Warn("failed to create quic listener", "localSocket", fmt.Sprintf("%s:%d", config.ListenAddress, config.ListenPort), "error", err)
-			continue
+			log.Error("failed to start socket listener", "socket", config, "error", err)
+			return fmt.Errorf("failed to start socket listener: %s", err)
 		}
-
 		go tm.listenerLoopAccept(ctx, listener)
-		tm.liteners = append(tm.liteners, listener)
-	}
-	if len(tm.config.LocalSockets) != 0 && len(tm.liteners) == 0 {
-		return fmt.Errorf("can not create any listener")
 	}
 	return nil
 }
 
 // callback function, which will be called when the all slave connections
-// related the loadbalancer are disconnected
+// belong to the tunnel which connect to the remoteSite are disconnected
 func (tm *TunnelManager) tunnelBroken(remoteSite string) tunnelBrokenCallback {
 	return func() {
 		log := logger.GetDefault()
@@ -141,7 +129,7 @@ func (tm *TunnelManager) Dial(ctx context.Context, remoteSite string, socket Soc
 		return err
 	}
 	log.Info("connect to remote site", "remoteSite", remoteSite, "remoteAddr", fmt.Sprintf("%s:%d", socket.Address, socket.Port))
-	// open a control stream, we will tell remote site out site name by this control stream
+	// open a control stream, we will tell remote site the local site name by this control stream
 	stream, err := conn.OpenStream(ctx)
 	if err != nil {
 		log.Error("failed to open control stream", "remoteSite", remoteSite, "error", err)
@@ -174,18 +162,36 @@ func (tm *TunnelManager) Dial(ctx context.Context, remoteSite string, socket Soc
 	return nil
 }
 
-// GetLocalSockets get the local tunnel socket infos, so that the
+// GetLocalSocketInfos get the local tunnel socket infos, so that the
 // remote sites can connect to me by these sockets
-func (tm *TunnelManager) GetLocalSockets() ([]SocketInfo, error) {
+func (tm *TunnelManager) GetLocalSocketInfos() ([]SocketInfo, error) {
 	socketInfos := []SocketInfo{}
-	for _, listener := range tm.liteners {
-		info, err := listener.GetSocketInfo()
-		if err != nil {
+	for _, socket := range tm.localSockets {
+		if !socket.Active() {
 			continue
+		}
+		info, err := socket.GetSocketInfo()
+		if err != nil {
+			return nil, err
 		}
 		socketInfos = append(socketInfos, *info)
 	}
 	return socketInfos, nil
+}
+
+func (tm *TunnelManager) GetLocalSocketInfoById(id string) (*SocketInfo, error) {
+	socket, ok := tm.localSockets[id]
+	if !ok {
+		return nil, fmt.Errorf("can not found socket by id: %s", id)
+	}
+	if !socket.Active() {
+		return nil, fmt.Errorf("the socket is not active")
+	}
+	info, err := socket.GetSocketInfo()
+	if err != nil {
+		return nil, err
+	}
+	return info, nil
 }
 
 func NewTunnelManager(
@@ -195,7 +201,6 @@ func NewTunnelManager(
 	return &TunnelManager{
 		siteName:            siteName,
 		config:              config,
-		liteners:            []Listener{},
 		tunnels:             sync.Map{},
 		newStream:           newStream,
 		remoteSiteConnected: remoteSiteConnected,

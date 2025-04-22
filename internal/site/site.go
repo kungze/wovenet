@@ -34,7 +34,7 @@ func (s *Site) Start(ctx context.Context) error {
 	}
 
 	// Get the local listenr sockets for others sites to connect to establish tunnels
-	sockets, err := s.tunnelManager.GetLocalSockets()
+	sockets, err := s.tunnelManager.GetLocalSocketInfos()
 	if err != nil {
 		log.Error("failed to get tunnel local sockets", "error", err)
 		return err
@@ -46,7 +46,7 @@ func (s *Site) Start(ctx context.Context) error {
 	}
 	// Announce a new site online with the site's base info
 	// The first message is to request exchange the base information with each other sites
-	err = s.msgClient.PublishMassage(context.Background(), message.ExchangeInfoRequest, data)
+	err = s.msgClient.BroadcastMessage(context.Background(), message.ExchangeInfoRequest, data)
 	if err != nil {
 		log.Error("failed to publish message", "error", err)
 		return err
@@ -79,7 +79,7 @@ func (s *Site) onExchangeInfoMessage(payload *message.Payload) (any, message.Mes
 
 	// Respond the request message with our base information
 	if payload.Kind == message.ExchangeInfoRequest {
-		sockets, err := s.tunnelManager.GetLocalSockets()
+		sockets, err := s.tunnelManager.GetLocalSocketInfos()
 		if err != nil {
 			log.Error("failed to get tunnel local sockets", "error", err)
 			return nil, "", err
@@ -266,7 +266,9 @@ func NewSite(ctx context.Context) (*Site, error) {
 		return nil, err
 	}
 	site.appManager = am
-	tm, err := tunnel.NewTunnelManager(config.SiteName, *config.Tunnel, site.onNewStream, site.onRemoteSiteConnected, site.onRemoteSiteGone)
+	tm, err := tunnel.NewTunnelManager(
+		config.SiteName, *config.Tunnel, site.onNewStream,
+		site.onRemoteSiteConnected, site.onRemoteSiteGone)
 	if err != nil {
 		log.Error("failed to create tunnel manager", "error", err)
 		return nil, err
