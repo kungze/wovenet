@@ -20,8 +20,10 @@ type MessageClient interface {
 	RegisterHandler(kind MessageKind, cb Callback)
 	// UnregisterHandler unregister message handler
 	UnregisterHandler(kind MessageKind)
-	// PublishMassage publish message to remote sites
-	PublishMassage(ctx context.Context, msgKind MessageKind, data any) error
+	// BroadcastMessage broadcast message to all sites
+	BroadcastMessage(ctx context.Context, msgKind MessageKind, data any) error
+	// UnicastMessage send message to a specific site
+	UnicastMessage(ctx context.Context, siteName string, msgKind MessageKind, data any) error
 }
 
 func NewMessageClient(ctx context.Context, config Config, siteName string) (MessageClient, error) {
