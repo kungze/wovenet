@@ -46,7 +46,7 @@ func (s *Site) Start(ctx context.Context) error {
 	}
 	// Announce a new site online with the site's base info
 	// The first message is to request exchange the base information with each other sites
-	err = s.msgClient.PublishMassage(context.Background(), message.ExchangeInfoRequest, data)
+	err = s.msgClient.BroadcastMessage(context.Background(), message.ExchangeInfoRequest, data)
 	if err != nil {
 		log.Error("failed to publish message", "error", err)
 		return err

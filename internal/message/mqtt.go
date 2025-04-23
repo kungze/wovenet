@@ -5,12 +5,17 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"sync"
 	"time"
 
 	"gihtub.com/kungze/wovenet/internal/logger"
 	"github.com/eclipse/paho.golang/autopaho"
 	"github.com/eclipse/paho.golang/paho"
 	"github.com/google/uuid"
+)
+
+const (
+	specificSiteTopic = "%s/%s/responses"
 )
 
 type mqttConfig struct {
@@ -21,10 +26,15 @@ type mqttConfig struct {
 type mqttClient struct {
 	mqttClient *autopaho.ConnectionManager
 	handlers   map[MessageKind]Callback
-	clientId   string
-	siteName   string
-	topic      string
-	cryptoKey  string
+	// Each wovenet site instance has a globally unique client
+	// id, it use to identify a specific wovenet site instance.
+	// Why don't use siteName to do that? Because we don't have
+	// method to ensure the site name is unique
+	clientId            string
+	siteName            string
+	topic               string
+	cryptoKey           string
+	siteNameClientIdMap sync.Map
 }
 
 // RegisterHandler register message handler
@@ -37,10 +47,28 @@ func (mc *mqttClient) UnregisterHandler(kind MessageKind) {
 	delete(mc.handlers, kind)
 }
 
-// PublishMassage publish message to remote sites
-func (mc *mqttClient) PublishMassage(ctx context.Context, msgKind MessageKind, data any) error {
+// UnicastMessage send message to a specific site
+func (mc *mqttClient) UnicastMessage(ctx context.Context, siteName string, msgKind MessageKind, data any) error {
+	log := logger.GetDefault()
+	clientId, ok := mc.siteNameClientIdMap.Load(siteName)
+	if !ok {
+		log.Error("can not found site client id", "siteName", siteName)
+		return fmt.Errorf("site %s not found", siteName)
+	}
+	err := mc.publishMassage(ctx, fmt.Sprintf(specificSiteTopic, mc.topic, clientId), msgKind, data)
+	if err != nil {
+		log.Error("failed to publish message", "error", err)
+		return err
+	}
+	return nil
+}
+
+// BroadcastMessage broadcast message to all sites
+func (mc *mqttClient) BroadcastMessage(ctx context.Context, msgKind MessageKind, data any) error {
+	log := logger.GetDefault()
 	err := mc.publishMassage(ctx, mc.topic, msgKind, data)
 	if err != nil {
+		log.Error("failed to publish message", "error", err)
 		return err
 	}
 	return nil
@@ -98,11 +126,12 @@ func (mc *mqttClient) onPublishReceived(r paho.PublishReceived) (bool, error) {
 	}
 	// If resp is not nil, means that we need to responed to remote site
 	if resp != nil {
-		err := mc.publishMassage(context.Background(), fmt.Sprintf("%s/responses", payload.ClientId), kind, resp)
+		err := mc.publishMassage(context.Background(), fmt.Sprintf(specificSiteTopic, mc.topic, payload.ClientId), kind, resp)
 		if err != nil {
 			return false, err
 		}
 	}
+	mc.siteNameClientIdMap.Store(payload.SiteName, payload.ClientId)
 
 	return true, nil
 }
@@ -115,11 +144,12 @@ func (mc *mqttClient) onError(err error) {
 func newMqttClient(ctx context.Context, mqttConfig mqttConfig, siteName string, cryptoKey string) (*mqttClient, error) {
 	log := logger.GetDefault()
 	mClient := &mqttClient{
-		siteName:  siteName,
-		clientId:  uuid.NewString(),
-		handlers:  make(map[MessageKind]Callback),
-		topic:     mqttConfig.Topic,
-		cryptoKey: cryptoKey,
+		siteName:            siteName,
+		clientId:            uuid.NewString(),
+		handlers:            make(map[MessageKind]Callback),
+		topic:               mqttConfig.Topic,
+		cryptoKey:           cryptoKey,
+		siteNameClientIdMap: sync.Map{},
 	}
 	if mqttConfig.BrokerServer == "" {
 		log.Error("broker server is empty")
@@ -131,8 +161,10 @@ func newMqttClient(ctx context.Context, mqttConfig mqttConfig, siteName string, 
 		return nil, err
 	}
 	subscribes := []paho.SubscribeOptions{
+		// subscribe to broadcast messages
 		{Topic: mqttConfig.Topic, QoS: 2},
-		{Topic: fmt.Sprintf("%s/responses", mClient.clientId), QoS: 2},
+		// subscribe to unicast messages (to myself)
+		{Topic: fmt.Sprintf(specificSiteTopic, mqttConfig.Topic, mClient.clientId), QoS: 2},
 	}
 	clientConfig := autopaho.ClientConfig{
 		ServerUrls:       []*url.URL{u},
