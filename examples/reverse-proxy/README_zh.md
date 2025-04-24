@@ -48,10 +48,10 @@ tunnel:
 
 remoteApps:
 - siteName: private-01
-  remoteAppId: 25cad886-6edd-4ee8-a5dc-294b73649256
+  appName: web
   localSocket: 0.0.0.0:28080
 - siteName: private-02
-  remoteAppId: 31f62ddd-397a-4047-9dc0-2c316708561c
+  appName: ssh
   localSocket: 0.0.0.0:59822
 ```
 
@@ -75,9 +75,8 @@ messageChannel:
     topic: "kungze/wovenet/reverse-proxy-78yted"
 
 localExposedApps:
-- socket: 172.26.142.105:80
-  id: 25cad886-6edd-4ee8-a5dc-294b73649256
-
+- appSocket: 172.26.142.105:80
+  appName: web
 ```
 
 ### 内网主机 2 配置：
@@ -100,8 +99,8 @@ messageChannel:
     topic: "kungze/wovenet/reverse-proxy-78yted"
 
 localExposedApps:
-- socket: 192.168.1.2:22
-  id: 31f62ddd-397a-4047-9dc0-2c316708561c
+- appSocket: 192.168.1.2:22
+  appName: ssh
 ```
 
 在三个主机上分别执行命令（三个主机可以任意顺序执行）：

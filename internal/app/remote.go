@@ -24,10 +24,10 @@ func (ra *remoteApp) listen(ctx context.Context, callback ClientConnectedCallbac
 	l, err := net.Listen(networkType, ra.config.LocalSocket)
 	if err != nil {
 		ra.active.Store(false)
-		log.Error("failed to listen local socket for remote app", "localSocket", ra.config.LocalSocket, "remoteAppId", ra.config.RemoteAppId, "error", err)
+		log.Error("failed to listen local socket for remote app", "localSocket", ra.config.LocalSocket, "remoteApp", ra.config.AppName, "error", err)
 		return err
 	}
-	log.Info("listen local socket for remote app", "localSocket", ra.config.LocalSocket, "remoteSite", ra.config.SiteName, "remoteAppId", ra.config.RemoteAppId)
+	log.Info("listen local socket for remote app", "localSocket", ra.config.LocalSocket, "remoteSite", ra.config.SiteName, "remoteApp", ra.config.AppName)
 	ra.listener = l
 	go func() {
 		defer func() {
@@ -41,11 +41,11 @@ func (ra *remoteApp) listen(ctx context.Context, callback ClientConnectedCallbac
 			default:
 				conn, err := l.Accept()
 				if err != nil {
-					log.Error("failed to accept local socket connection", "localSocket", ra.config.LocalSocket, "remoteSite", ra.config.SiteName, "remoteAppId", ra.config.RemoteAppId, "error", err)
+					log.Error("failed to accept local socket connection", "localSocket", ra.config.LocalSocket, "remoteSite", ra.config.SiteName, "remoteApp", ra.config.AppName, "error", err)
 					return
 				}
-				log.Info("a new client connection request incoming", "clientAddr", conn.RemoteAddr().String(), "remoteAppId", ra.config.RemoteAppId)
-				go callback(ra.config.SiteName, ra.config.RemoteAppId, conn)
+				log.Info("a new client connection request incoming", "clientAddr", conn.RemoteAddr().String(), "remoteApp", ra.config.AppName)
+				go callback(ra.config.SiteName, ra.config.AppName, conn)
 			}
 		}
 	}()
@@ -58,10 +58,10 @@ func (ra *remoteApp) Active() bool {
 
 func (ra *remoteApp) stop() {
 	log := logger.GetDefault()
-	log.Info("stop local socket listener for remote app", "remoteSite", ra.config.SiteName, "appId", ra.config.RemoteAppId, "localSocket", ra.config.LocalSocket)
+	log.Info("stop local socket listener for remote app", "remoteSite", ra.config.SiteName, "remoteApp", ra.config.AppName, "localSocket", ra.config.LocalSocket)
 	err := ra.listener.Close()
 	if err != nil {
-		log.Error("failed to close local socket", "localSocket", ra.config.LocalSocket, "remoteSite", ra.config.SiteName, "remoteAppId", ra.config.RemoteAppId, "error", err)
+		log.Error("failed to close local socket", "localSocket", ra.config.LocalSocket, "remoteSite", ra.config.SiteName, "remoteApp", ra.config.AppName, "error", err)
 	}
 }
 

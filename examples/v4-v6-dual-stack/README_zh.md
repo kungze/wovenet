@@ -69,8 +69,8 @@ tunnel:
     publicPort: 25890
 
 localExposedApps:
-- socket: 127.0.0.1:5201
-  id: afe87405-0f46-4290-84df-b6034b54761f
+- appSocket: 127.0.0.1:5201
+  appName: iperf
 ```
 
 **注意：** 上面配置我们没有使用到 AWS 主机的公网 IPv4 地址，公网 IPv6 地址是这个主机专属的，并且直接配置在主机网卡上。需要在防火墙/安全组添加规则，放行 UDP 25890 端口。
@@ -119,7 +119,7 @@ tunnel:
 
 remoteApps:
 - siteName: aws
-  remoteAppId: afe87405-0f46-4290-84df-b6034b54761f
+  appName: iperf
   localSocket: 127.0.0.1:5201
 ```
 

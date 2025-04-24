@@ -7,39 +7,48 @@ import (
 )
 
 type LocalExposedAppConfig struct {
-	Id     string `mapstructure:"id"`
-	Socket string `mapstructure:"socket"`
+	AppName   string `mapstructure:"appName"`
+	AppSocket string `mapstructure:"appSocket"`
 }
 
 type RemoteAppConfig struct {
-	RemoteAppId string `mapstructure:"remoteAppId"`
-	LocalSocket string `mapstructure:"localSocket"`
 	SiteName    string `mapstructure:"siteName"`
+	AppName     string `mapstructure:"appName"`
+	LocalSocket string `mapstructure:"localSocket"`
 }
 
-var localExposedAppIds = []string{}
+var localExposedAppNames = []string{}
 
 func CheckLocalExposedAppConfig(configs []*LocalExposedAppConfig) error {
 	for _, cfg := range configs {
-		if cfg.Id == "" || cfg.Socket == "" {
-			return fmt.Errorf("the id and socket must set together for localExposedApp")
+		if cfg.AppName == "" || cfg.AppSocket == "" {
+			return fmt.Errorf("the appName and appsocket must be set together for local exposed app")
 		}
-		_, err := netip.ParseAddrPort(cfg.Socket)
+		if len(cfg.AppName) > 255 {
+			return fmt.Errorf("the appName: %s is too long, the max length is 255", cfg.AppName)
+		}
+		_, err := netip.ParseAddrPort(cfg.AppSocket)
 		if err != nil {
-			return fmt.Errorf("the socket: %s is invalid", cfg.Socket)
+			return fmt.Errorf("the app socket: %s is invalid", cfg.AppSocket)
 		}
-		if slices.Contains(localExposedAppIds, cfg.Id) {
-			return fmt.Errorf("the local exposed app id: %s is not unique", cfg.Id)
+		if slices.Contains(localExposedAppNames, cfg.AppName) {
+			return fmt.Errorf("the appName: %s is duplicated", cfg.AppName)
 		}
-		localExposedAppIds = append(localExposedAppIds, cfg.Id)
+		localExposedAppNames = append(localExposedAppNames, cfg.AppName)
 	}
 	return nil
 }
 
 func CheckRemoteAddConfig(configs []*RemoteAppConfig) error {
 	for _, cfg := range configs {
-		if cfg.RemoteAppId == "" || cfg.LocalSocket == "" || cfg.SiteName == "" {
-			return fmt.Errorf("the siteName and remoteAppId and localSocket must be set together for remoteApp")
+		if cfg.SiteName == "" || cfg.AppName == "" || cfg.LocalSocket == "" {
+			return fmt.Errorf("the siteName, appName and localSocket must be set together for remote app")
+		}
+		if len(cfg.SiteName) > 255 {
+			return fmt.Errorf("the siteName: %s is too long, the max length is 255", cfg.SiteName)
+		}
+		if len(cfg.AppName) > 255 {
+			return fmt.Errorf("the appName: %s is too long, the max length is 255", cfg.AppName)
 		}
 		_, err := netip.ParseAddrPort(cfg.LocalSocket)
 		if err != nil {
