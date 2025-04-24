@@ -32,6 +32,11 @@ func (qc *quicConn) AcceptStream(ctx context.Context) (Stream, error) {
 }
 
 func (qc *quicConn) Close() {
+	log := logger.GetDefault()
+	err := qc.CloseWithError(0, "quic connection closed")
+	if err != nil {
+		log.Error("failed to close quic connection", "error", err, "remoteAddr", qc.RemoteAddr().String(), "localAddr", qc.LocalAddr().String())
+	}
 }
 
 type QuicDialer struct {

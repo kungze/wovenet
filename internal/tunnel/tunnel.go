@@ -17,6 +17,7 @@ type tunnel struct {
 	streamCallback NewStreamCallback
 	brokenCallback tunnelBrokenCallback
 	mux            sync.RWMutex
+	remoteSite     string
 }
 
 func (t *tunnel) OpenStream(ctx context.Context) (io.ReadWriteCloser, error) {
@@ -34,10 +35,12 @@ func (t *tunnel) OpenStream(ctx context.Context) (io.ReadWriteCloser, error) {
 }
 
 func (t *tunnel) delSlave(key string) {
+	log := logger.GetDefault()
 	t.mux.Lock()
 	defer t.mux.Unlock()
 	delete(t.slaves, key)
 	if len(t.slaves) == 0 {
+		log.Warn("all slave data channels are disconnected", "remoteSite", t.remoteSite)
 		t.brokenCallback()
 	}
 }
@@ -69,8 +72,9 @@ func (t *tunnel) addSlaveConn(ctx context.Context, conn Connection) {
 	}()
 }
 
-func newTunnel(streamCallback NewStreamCallback, brokenCallback tunnelBrokenCallback) *tunnel {
+func newTunnel(remoteSite string, streamCallback NewStreamCallback, brokenCallback tunnelBrokenCallback) *tunnel {
 	return &tunnel{
+		remoteSite:     remoteSite,
 		slaves:         map[string]Connection{},
 		streamCallback: streamCallback,
 		brokenCallback: brokenCallback,

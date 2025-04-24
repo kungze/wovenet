@@ -21,6 +21,7 @@ type Site struct {
 	tunnelManager *tunnel.TunnelManager
 	appManager    *app.AppManager
 	remoteSites   sync.Map
+	ctx           context.Context
 }
 
 // Start start a local site
@@ -46,7 +47,7 @@ func (s *Site) Start(ctx context.Context) error {
 	}
 	// Announce a new site online with the site's base info
 	// The first message is to request exchange the base information with each other sites
-	err = s.msgClient.BroadcastMessage(context.Background(), message.ExchangeInfoRequest, data)
+	err = s.msgClient.BroadcastMessage(ctx, message.ExchangeInfoRequest, data)
 	if err != nil {
 		log.Error("failed to publish message", "error", err)
 		return err
@@ -70,7 +71,7 @@ func (s *Site) onExchangeInfoMessage(payload *message.Payload) (any, message.Mes
 	s.remoteSites.Store(payload.SiteName, &info)
 	// Try to connect to the new remote site
 	for _, socket := range info.TunnelListenerSockets {
-		err = s.tunnelManager.Dial(context.Background(), payload.SiteName, socket)
+		err = s.tunnelManager.Dial(s.ctx, payload.SiteName, socket)
 		if err != nil {
 			log.Error("failed to establish tunnel with remote site", "remoteSite", payload.SiteName, "error", err)
 			return nil, "", err
@@ -95,16 +96,18 @@ func (s *Site) onExchangeInfoMessage(payload *message.Payload) (any, message.Mes
 	return nil, "", nil
 }
 
-// onRemoteSiteGone callback function, which will be called when
-// a remote site is disconnected (all connections to the remote site are unusable)
-func (s *Site) onRemoteSiteGone(remoteSite string) {
+// onRemoteSiteDisconnected callback function, which will be called when
+// a remote site is disconnected (the tunnel to the remoteSite is broken)
+func (s *Site) onRemoteSiteDisconnected(remoteSite string) {
+	log := logger.GetDefault()
+	log.Info("remote site is disconnected", "remoteSite", remoteSite)
 	s.appManager.ProcessRemoteSiteGone(remoteSite)
 	s.remoteSites.Delete(remoteSite)
 }
 
 // onRemoteSiteConnected callback function, which will be called when a new remote site
 // connects to the local site successfully
-func (s *Site) onRemoteSiteConnected(ctx context.Context, remoteSite string) error {
+func (s *Site) onRemoteSiteConnected(ctx context.Context, remoteSite string) {
 	log := logger.GetDefault()
 	info, ok := s.remoteSites.Load(remoteSite)
 	if !ok {
@@ -113,26 +116,23 @@ func (s *Site) onRemoteSiteConnected(ctx context.Context, remoteSite string) err
 		<-time.NewTicker(5 * time.Second).C
 		info, ok = s.remoteSites.Load(remoteSite)
 		if !ok {
-			return fmt.Errorf("can not get remote site: %s info", remoteSite)
+			log.Error("can not found remote site info", "remoteSite", remoteSite)
+			return
 		}
 	}
-	return s.appManager.ProcessNewRemoteSite(ctx, remoteSite, info.(*siteInfo).ExposedApps, s.onNewClientConnection)
+	s.appManager.ProcessNewRemoteSite(ctx, remoteSite, info.(*siteInfo).ExposedApps, s.onNewClientConnection)
 }
 
 // onNewClientConnection callback function, which will be called when an external client connects to the
 // local socket which is listened for remote app
 func (s *Site) onNewClientConnection(remoteSite string, remoteApp string, conn io.ReadWriteCloser) {
+	defer conn.Close() //nolint:errcheck
 	log := logger.GetDefault()
-
-	defer func() {
-		if err := conn.Close(); err != nil {
-			log.Error("failed to close connection", "remoteSite", remoteSite, "remoteApp", remoteApp, "error", err)
-		}
-	}()
 
 	// Open a new strem in the tunnel which link the local site and the remote site
 	// which the remote app is located in
-	stream, err := s.tunnelManager.OpenNewStream(context.Background(), remoteSite)
+	log.Info("try to open a new stream in tunnel to connect to remote app", "remoteSite", remoteSite, "remoteApp", remoteApp)
+	stream, err := s.tunnelManager.OpenNewStream(s.ctx, remoteSite)
 	if err != nil {
 		log.Error("failed to open a new stream", "remoteSite", remoteSite, "error", err)
 		return
@@ -142,6 +142,7 @@ func (s *Site) onNewClientConnection(remoteSite string, remoteApp string, conn i
 	// Prepare the handshake data, to tell remote site we want to connect to which app
 	data := []byte(remoteApp)
 	len := byte(len(data))
+	log.Info("try to write handshake data to app stream", "remoteSite", remoteSite, "remoteApp", remoteApp)
 	n, err := stream.Write(append([]byte{len}, data...))
 	if err != nil {
 		log.Error("failed to write handshake data to app stream",
@@ -156,9 +157,9 @@ func (s *Site) onNewClientConnection(remoteSite string, remoteApp string, conn i
 	wg := sync.WaitGroup{}
 	wg.Add(2)
 	go func() {
+		log.Info("start to copy data from tunnel stream to local client",
+			"remoteSite", remoteSite, "remoteApp", remoteApp)
 		defer wg.Done()
-		defer conn.Close()   //nolint:errcheck
-		defer stream.Close() //nolint:errcheck
 		_, err := io.Copy(conn, stream)
 		if err != nil {
 			log.Error("failed to copy data from tunnel stream to local client",
@@ -168,9 +169,9 @@ func (s *Site) onNewClientConnection(remoteSite string, remoteApp string, conn i
 			"remoteSite", remoteSite, "remoteApp", remoteApp)
 	}()
 	go func() {
+		log.Info("start to copy data from local client to tunnel stream",
+			"remoteSite", remoteSite, "remoteApp", remoteApp)
 		defer wg.Done()
-		defer conn.Close()   //nolint:errcheck
-		defer stream.Close() //nolint:errcheck
 		_, err := io.Copy(stream, conn)
 		if err != nil {
 			log.Error("failed to copy data from local client to tunnel stream",
@@ -186,6 +187,7 @@ func (s *Site) onNewClientConnection(remoteSite string, remoteApp string, conn i
 // it means that a external client from remote site want to connect to our local app
 func (s *Site) onNewStream(stream tunnel.Stream) {
 	log := logger.GetDefault()
+	log.Info("a new stream was accepted")
 	defer stream.Close() //nolint:errcheck
 	// Read handshake data, the handshake data indicates the remote client
 	// want to access which app
@@ -218,9 +220,8 @@ func (s *Site) onNewStream(stream tunnel.Stream) {
 	wg := sync.WaitGroup{}
 	wg.Add(2)
 	go func() {
+		log.Info("start to copy data from tunnel stream to local app", "appId", appId)
 		defer wg.Done()
-		defer conn.Close()   //nolint:errcheck
-		defer stream.Close() //nolint:errcheck
 		_, err := io.Copy(conn, stream)
 		if err != nil {
 			log.Error("failed to copy data from tunnel stream to local app", "appId", appId)
@@ -228,9 +229,8 @@ func (s *Site) onNewStream(stream tunnel.Stream) {
 		log.Warn("the coroutine which copy data from tunnel stream to local app exit", "appId", appId)
 	}()
 	go func() {
+		log.Info("start to copy data from local app to tunnel stream", "appId", appId)
 		defer wg.Done()
-		defer conn.Close()   //nolint:errcheck
-		defer stream.Close() //nolint:errcheck
 		_, err := io.Copy(stream, conn)
 		if err != nil {
 			log.Error("failed to copy data from local app to tunnel stream", "appId", appId)
@@ -258,6 +258,7 @@ func NewSite(ctx context.Context) (*Site, error) {
 	site := &Site{
 		siteName:    config.SiteName,
 		remoteSites: sync.Map{},
+		ctx:         ctx,
 	}
 
 	am, err := app.NewAppManager(ctx, config.LocalExposedApps, config.RemoteApps)
@@ -266,7 +267,7 @@ func NewSite(ctx context.Context) (*Site, error) {
 		return nil, err
 	}
 	site.appManager = am
-	tm, err := tunnel.NewTunnelManager(config.SiteName, config.Tunnel, site.onNewStream, site.onRemoteSiteConnected, site.onRemoteSiteGone)
+	tm, err := tunnel.NewTunnelManager(config.SiteName, config.Tunnel, site.onNewStream, site.onRemoteSiteConnected, site.onRemoteSiteDisconnected)
 	if err != nil {
 		log.Error("failed to create tunnel manager", "error", err)
 		return nil, err

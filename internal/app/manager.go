@@ -35,7 +35,8 @@ func (am *AppManager) ConnectToLocalApp(appId string) (io.ReadWriteCloser, error
 // ProcessNewRemoteSite when a new remote site connected successfully, we
 // need to start the listeners for local sockets which for remote apps that
 // located in this new remote site
-func (am *AppManager) ProcessNewRemoteSite(ctx context.Context, remoteSite string, exposedApps []LocalExposedApp, callback ClientConnectedCallback) error {
+func (am *AppManager) ProcessNewRemoteSite(ctx context.Context, remoteSite string, exposedApps []LocalExposedApp, callback ClientConnectedCallback) {
+	log := logger.GetDefault()
 	for _, remoteApp := range am.remoteApp {
 		if remoteApp.Active() {
 			continue
@@ -43,12 +44,12 @@ func (am *AppManager) ProcessNewRemoteSite(ctx context.Context, remoteSite strin
 		for _, eApp := range exposedApps {
 			if remoteApp.config.SiteName == remoteSite && remoteApp.config.RemoteAppId == eApp.Id {
 				if err := remoteApp.listen(ctx, callback); err != nil {
-					return err
+					log.Error("failed to start local socket listener for remote app", "localSocket", remoteApp.config.LocalSocket, "remoteSite", remoteSite, "remoteAppId", remoteApp.config.RemoteAppId, "error", err)
+					continue
 				}
 			}
 		}
 	}
-	return nil
 }
 
 // ProcessRemoteSiteGone when a remote site is disconnected, we need to

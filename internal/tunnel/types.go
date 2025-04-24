@@ -6,12 +6,21 @@ import (
 	"net"
 )
 
+// Stream is a bidirectional stream, it's opened in a tunnel
 type Stream io.ReadWriteCloser
 
-type RemoteSiteGoneCallback func(remoteSite string)
-type RemoteSiteConnectedCallback func(ctx context.Context, remoteSite string) error
-
+// NewStreamCallback is called when a new stream is opened.
+// the open operation is triggered by external client which
+// try to connect to remote app or local exposed app
 type NewStreamCallback func(stream Stream)
+
+// RemoteSiteDisconnectedCallback is called when a remote site is disconnected.
+// It is used to notify the local site that the remote site is no longer reachable.
+type RemoteSiteDisconnectedCallback func(remoteSite string)
+
+// RemoteSiteConnectedCallback is called when a remote site is connected.
+// It is used to notify the local site that the remote site is reachable.
+type RemoteSiteConnectedCallback func(ctx context.Context, remoteSite string)
 
 type Listener interface {
 	// Accept returns a new connections. It should be called in a loop.

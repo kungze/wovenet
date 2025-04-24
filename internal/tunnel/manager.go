@@ -10,13 +10,13 @@ import (
 )
 
 type TunnelManager struct {
-	siteName            string
-	config              *Config
-	localSockets        map[string]*socket
-	tunnels             sync.Map // map[remoteSite]*tunnel
-	remoteSiteGone      RemoteSiteGoneCallback
-	remoteSiteConnected RemoteSiteConnectedCallback
-	newStream           NewStreamCallback
+	siteName               string
+	config                 *Config
+	localSockets           map[string]*socket
+	tunnels                sync.Map // map[remoteSite]*tunnel
+	remoteSiteDisconnected RemoteSiteDisconnectedCallback
+	remoteSiteConnected    RemoteSiteConnectedCallback
+	newStream              NewStreamCallback
 }
 
 func (tm *TunnelManager) listenerLoopAccept(ctx context.Context, listener Listener) {
@@ -59,13 +59,9 @@ func (tm *TunnelManager) listenerLoopAccept(ctx context.Context, listener Listen
 			}
 			// Get remote site name from control stream data
 			remoteSite := string(buf[1:n])
-			if err := tm.remoteSiteConnected(ctx, remoteSite); err != nil {
-				log.Error("Failed to process new remote site", "localAddr", listener.Addr().String(),
-					"remoteAddr", conn.RemoteAddr().String(), "remoteSite", remoteSite, "error", err)
-				continue
-			}
+			go tm.remoteSiteConnected(ctx, remoteSite)
 			log.Info("accept a new remote site connection", "remoteSite", remoteSite, "remoteAddr", conn.RemoteAddr().String())
-			tun, _ := tm.tunnels.LoadOrStore(remoteSite, newTunnel(tm.newStream, tm.tunnelBroken(remoteSite)))
+			tun, _ := tm.tunnels.LoadOrStore(remoteSite, newTunnel(remoteSite, tm.newStream, tm.tunnelBroken(remoteSite)))
 			tun.(*tunnel).addSlaveConn(ctx, conn)
 		}
 	}
@@ -100,9 +96,9 @@ func (tm *TunnelManager) Start(ctx context.Context) error {
 func (tm *TunnelManager) tunnelBroken(remoteSite string) tunnelBrokenCallback {
 	return func() {
 		log := logger.GetDefault()
+		log.Warn("the tunnel to remote site is broken", "remoteSite", remoteSite)
 		tm.tunnels.Delete(remoteSite)
-		tm.remoteSiteGone(remoteSite)
-		log.Warn("remote site gone", "remoteSite", remoteSite)
+		tm.remoteSiteDisconnected(remoteSite)
 	}
 }
 
@@ -158,13 +154,8 @@ func (tm *TunnelManager) Dial(ctx context.Context, remoteSite string, socket Soc
 		log.Error("the lenght of data write to control stream is valid", "remoteSite", remoteSite)
 		return fmt.Errorf("write data length is not valid")
 	}
-	if err := tm.remoteSiteConnected(ctx, remoteSite); err != nil {
-		log.Error("failed to process remote site", "remoteSite", remoteSite)
-		stream.Close() //nolint:errcheck
-		conn.Close()
-		return err
-	}
-	tun, _ := tm.tunnels.LoadOrStore(remoteSite, newTunnel(tm.newStream, tm.tunnelBroken(remoteSite)))
+	go tm.remoteSiteConnected(ctx, remoteSite)
+	tun, _ := tm.tunnels.LoadOrStore(remoteSite, newTunnel(remoteSite, tm.newStream, tm.tunnelBroken(remoteSite)))
 	tun.(*tunnel).addSlaveConn(ctx, conn)
 	return nil
 }
@@ -204,14 +195,14 @@ func (tm *TunnelManager) GetLocalSocketInfoById(id string) (*SocketInfo, error) 
 func NewTunnelManager(
 	siteName string, config *Config, newStream NewStreamCallback,
 	remoteSiteConnected RemoteSiteConnectedCallback,
-	remoteSiteGone RemoteSiteGoneCallback) (*TunnelManager, error) {
+	removeSiteDisconnected RemoteSiteDisconnectedCallback) (*TunnelManager, error) {
 	return &TunnelManager{
-		siteName:            siteName,
-		config:              config,
-		tunnels:             sync.Map{},
-		newStream:           newStream,
-		remoteSiteConnected: remoteSiteConnected,
-		remoteSiteGone:      remoteSiteGone,
-		localSockets:        make(map[string]*socket),
+		siteName:               siteName,
+		config:                 config,
+		tunnels:                sync.Map{},
+		newStream:              newStream,
+		remoteSiteConnected:    remoteSiteConnected,
+		remoteSiteDisconnected: removeSiteDisconnected,
+		localSockets:           make(map[string]*socket),
 	}, nil
 }
