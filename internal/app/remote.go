@@ -13,7 +13,6 @@ type ClientConnectedCallback func(remoteSite string, remoteApp string, conn io.R
 
 type remoteApp struct {
 	config   RemoteAppConfig
-	stopCh   chan bool
 	active   atomic.Bool
 	listener net.Listener
 }
@@ -33,22 +32,17 @@ func (ra *remoteApp) listen(ctx context.Context, callback ClientConnectedCallbac
 	go func() {
 		defer func() {
 			ra.active.Store(false)
-			err := l.Close()
-			if err != nil {
-				log.Error("failed to close local socket listener for remote app", "localSocket", ra.config.LocalSocket, "remoteSite", ra.config.SiteName, "remoteAppId", ra.config.RemoteAppId, "error", err)
-			}
+			_ = l.Close()
 		}()
 		for {
 			select {
-			case <-ra.stopCh:
-				return
 			case <-ctx.Done():
 				return
 			default:
 				conn, err := l.Accept()
 				if err != nil {
-					log.Warn("local socket listener encountering error while accepting", "error", err)
-					continue
+					log.Error("failed to accept local socket connection", "localSocket", ra.config.LocalSocket, "remoteSite", ra.config.SiteName, "remoteAppId", ra.config.RemoteAppId, "error", err)
+					return
 				}
 				log.Info("a new client connection request incoming", "clientAddr", conn.RemoteAddr().String(), "remoteAppId", ra.config.RemoteAppId)
 				go callback(ra.config.SiteName, ra.config.RemoteAppId, conn)
@@ -64,18 +58,16 @@ func (ra *remoteApp) Active() bool {
 
 func (ra *remoteApp) stop() {
 	log := logger.GetDefault()
-	log.Info("stop local socket listen", "remoteSite", ra.config.SiteName, "appId", ra.config.RemoteAppId, "localSocket", ra.config.LocalSocket)
+	log.Info("stop local socket listener for remote app", "remoteSite", ra.config.SiteName, "appId", ra.config.RemoteAppId, "localSocket", ra.config.LocalSocket)
 	err := ra.listener.Close()
 	if err != nil {
 		log.Error("failed to close local socket", "localSocket", ra.config.LocalSocket, "remoteSite", ra.config.SiteName, "remoteAppId", ra.config.RemoteAppId, "error", err)
 	}
-	ra.stopCh <- true
 }
 
 func newRemoteApp(config RemoteAppConfig) *remoteApp {
 	return &remoteApp{
 		config: config,
-		stopCh: make(chan bool),
 		active: atomic.Bool{},
 	}
 }
