@@ -22,6 +22,24 @@ type RemoteSiteDisconnectedCallback func(remoteSite string)
 // It is used to notify the local site that the remote site is reachable.
 type RemoteSiteConnectedCallback func(ctx context.Context, remoteSite string)
 
+// RequestNewRemoteSocketInfo is called whan a remote site's socket is disconnected
+// and the remote socket's public address is dynamic. This function is used to
+// request a new public address for the remote site.
+type RequestNewRemoteSocketInfo func(remoteSite string, socketId string) error
+
+// ConnectionErrorCallback is called when a connection error occurs.
+// RequestNewRemoteSocketInfo will be called in this callback function
+type ConnectionErrorCallback func(err error)
+
+// DataChannelCreatedCallback is called when a new data channel is created.
+// The tunnel between different sites is made up of one or more data channels.
+// This callback function will add the data channel to the tunnel.
+type DataChannelCreatedCallback func(remoteSite string, dc *dataChannel)
+
+// DataChannelDestroyCallback is called when a data channel is destroyed.
+// This callback function will remove the data channel from the tunnel.
+type DataChannelDestroyCallback func(remoteSite string, channelId string)
+
 type Listener interface {
 	// Accept returns a new connections. It should be called in a loop.
 	Accept(context.Context) (Connection, error)
