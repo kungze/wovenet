@@ -1,5 +1,5 @@
 package app
 
 type LocalExposedApp struct {
-	Id string `mapstructure:"id"`
+	Name string `mapstructure:"name"`
 }

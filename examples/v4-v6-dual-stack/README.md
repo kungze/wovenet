@@ -69,8 +69,8 @@ tunnel:
     publicPort: 25890
 
 localExposedApps:
-- socket: 127.0.0.1:5201
-  id: afe87405-0f46-4290-84df-b6034b54761f
+- appSocket: 127.0.0.1:5201
+  appName: iperf
 ```
 
 **Note:**
@@ -121,7 +121,7 @@ tunnel:
 
 remoteApps:
 - siteName: aws
-  remoteAppId: afe87405-0f46-4290-84df-b6034b54761f
+  appName: iperf
   localSocket: 127.0.0.1:5201
 ```
 

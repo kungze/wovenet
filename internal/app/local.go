@@ -10,8 +10,8 @@ type localApp struct {
 
 // GetConnection get a connection which connect to the local app
 func (la *localApp) GetConnection() (net.Conn, error) {
-	network := networkType(la.config.Socket)
-	conn, err := net.Dial(network, la.config.Socket)
+	network := networkType(la.config.AppSocket)
+	conn, err := net.Dial(network, la.config.AppSocket)
 	if err != nil {
 		return nil, err
 	}

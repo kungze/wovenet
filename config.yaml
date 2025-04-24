@@ -97,14 +97,18 @@ tunnel:
       url: https://ipinfo.io/ip
 
 # Specify which applications can be accessed by remote peer sites.
-# The both options id and socket are required
+# The both options appName and appSocket are required.
+# The max lenght of appName is 255, and appName must be unique
+# in the local site. The appSocket is the socket of the local application
 # 指定本端哪些应用可以被远程对等站点访问
-# 两个参数 id 和  socket 都是必须被设置的
+# 两个参数 appName 和 appSocket 都是必须被设置的
+# appName 的最大长度是 255，且在本地站点中必须唯一
+# appSocket 是本地应用的套接字
 localExposedApps:
-- socket: 192.168.122.80:8080
-  id: 1562160a-7e84-4d32-8912-d8bdc96f47aa
-- socket: 127.0.0.1:22
-  id: 16d86618-d4f3-4221-9ed2-7f4534774082
+- appSocket: 192.168.122.80:8080
+  appName: web
+- appSocket: 127.0.0.1:22
+  appName: ssh
 
 # Specify the local site can access which remote applications of remote sites
 # All these three options are required.
@@ -116,8 +120,8 @@ localExposedApps:
 # 特定的远端应用。
 remoteApps:
 - siteName: site02
-  remoteAppId: 2559c7cf-b571-42ca-81ee-8de47515c6c5
+  appName: web
   localSocket: 127.0.0.1:28080
 - siteName: site03
-  remoteAppId: 86d7cc3b-8eef-43e2-8625-4ad30f0cfb8f
+  appName: ssh
   localSocket: 127.0.0.1:20022

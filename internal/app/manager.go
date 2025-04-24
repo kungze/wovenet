@@ -16,18 +16,18 @@ type AppManager struct {
 func (am *AppManager) GetExposedApps() []LocalExposedApp {
 	apps := []LocalExposedApp{}
 	for _, app := range am.localExposedApps {
-		apps = append(apps, LocalExposedApp{Id: app.config.Id})
+		apps = append(apps, LocalExposedApp{Name: app.config.AppName})
 	}
 	return apps
 }
 
 // ConnectToLocalApp get a connection which connect to the local app
-func (am *AppManager) ConnectToLocalApp(appId string) (io.ReadWriteCloser, error) {
+func (am *AppManager) ConnectToLocalApp(appName string) (io.ReadWriteCloser, error) {
 	log := logger.GetDefault()
-	app, ok := am.localExposedApps[appId]
+	app, ok := am.localExposedApps[appName]
 	if !ok {
-		log.Error("local app can not found", "appId", appId)
-		return nil, fmt.Errorf("app: %s can not found", appId)
+		log.Error("local app can not found", "localApp", appName)
+		return nil, fmt.Errorf("app: %s can not found", appName)
 	}
 	return app.GetConnection()
 }
@@ -41,10 +41,10 @@ func (am *AppManager) ProcessNewRemoteSite(ctx context.Context, remoteSite strin
 		if remoteApp.Active() {
 			continue
 		}
-		for _, eApp := range exposedApps {
-			if remoteApp.config.SiteName == remoteSite && remoteApp.config.RemoteAppId == eApp.Id {
+		for _, exposedApp := range exposedApps {
+			if remoteApp.config.SiteName == remoteSite && remoteApp.config.AppName == exposedApp.Name {
 				if err := remoteApp.listen(ctx, callback); err != nil {
-					log.Error("failed to start local socket listener for remote app", "localSocket", remoteApp.config.LocalSocket, "remoteSite", remoteSite, "remoteAppId", remoteApp.config.RemoteAppId, "error", err)
+					log.Error("failed to start local socket listener for remote app", "localSocket", remoteApp.config.LocalSocket, "remoteSite", remoteSite, "appName", remoteApp.config.AppName, "error", err)
 					continue
 				}
 			}
@@ -66,7 +66,7 @@ func NewAppManager(ctx context.Context, localexposedApps []*LocalExposedAppConfi
 	am := AppManager{localExposedApps: map[string]*localApp{}}
 	for _, exposedApp := range localexposedApps {
 		a := newLocalApp(*exposedApp)
-		am.localExposedApps[exposedApp.Id] = a
+		am.localExposedApps[exposedApp.AppName] = a
 	}
 
 	for _, remoteApp := range remoteApps {
