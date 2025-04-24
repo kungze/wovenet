@@ -68,10 +68,17 @@ func (s *Site) onExchangeInfoMessage(payload *message.Payload) (any, message.Mes
 		return nil, "", err
 	}
 	log.Info("receive remote site base info", "remoteSite", payload.SiteName)
+	value, ok := s.remoteSites.Load(payload.SiteName)
+	if ok {
+		oldSiteInfo := value.(*siteInfo)
+		for _, socket := range oldSiteInfo.TunnelListenerSockets {
+			s.tunnelManager.DelRemoteSocket(s.ctx, payload.SiteName, socket)
+		}
+	}
 	s.remoteSites.Store(payload.SiteName, &info)
 	// Try to connect to the new remote site
 	for _, socket := range info.TunnelListenerSockets {
-		err = s.tunnelManager.Dial(s.ctx, payload.SiteName, socket)
+		err = s.tunnelManager.AddRemoteSocket(s.ctx, payload.SiteName, socket)
 		if err != nil {
 			log.Error("failed to establish tunnel with remote site", "remoteSite", payload.SiteName, "error", err)
 			return nil, "", err
@@ -96,13 +103,72 @@ func (s *Site) onExchangeInfoMessage(payload *message.Payload) (any, message.Mes
 	return nil, "", nil
 }
 
+// onNewSocketInfoRequest the callback function for message channel receive a request
+// for a new socket info. The request is triggered by a remote site when the remote site
+// encounter a connection error with the local site's socket. the local site will respond
+// the request with a new socket info which contains a new public address.
+func (s *Site) onNewSocketInfoRequest(payload *message.Payload) (any, message.MessageKind, error) {
+	log := logger.GetDefault()
+	// Decode the message payload data and get the remote site's base information
+	request := tunnel.SocketInfoRequest{}
+	err := mapstructure.Decode(payload.Data, &request)
+	if err != nil {
+		log.Error("failed to decode message payload", "error", err)
+		return nil, "", err
+	}
+	// Get the local socket info by id
+	socketInfo, err := s.tunnelManager.GetLocalSocketInfoById(request.Id)
+	if err != nil {
+		log.Error("failed to get local socket info", "error", err, "socketId", request.Id)
+		return nil, "", err
+	}
+	return socketInfo, message.NewSocketInfoResponse, nil
+}
+
+// onNewSocketInfoResponse the callback function for message channel receive a response
+// for a new socket info(maybe contains a new public address).
+func (s *Site) onNewSocketInfoResponse(payload *message.Payload) (any, message.MessageKind, error) {
+	log := logger.GetDefault()
+	// Decode the message payload data and get the remote site's base information
+	info := tunnel.SocketInfo{}
+	err := mapstructure.Decode(payload.Data, &info)
+	if err != nil {
+		log.Error("failed to decode message payload", "error", err)
+		return nil, "", err
+	}
+	err = s.tunnelManager.AddRemoteSocket(s.ctx, payload.SiteName, info)
+	if err != nil {
+		log.Error("failed to connect to remote site", "remoteSite", payload.SiteName, "socketINfo", info, "error", err)
+		return nil, "", err
+	}
+	return nil, "", nil
+}
+
+// requestNewRemoteSocketInfo request a new socket info from remote site, it will be
+// called when the local site encounter a connection error with the remote site's socket
+func (s *Site) requestNewRemoteSocketInfo(remoteSite string, socketId string) error {
+	log := logger.GetDefault()
+	// Get the remote site info
+	_, ok := s.remoteSites.Load(remoteSite)
+	if !ok {
+		log.Error("can not found remote site info", "remoteSite", remoteSite)
+		return fmt.Errorf("can not found remote site info")
+	}
+	// Send a request message to the remote site
+	err := s.msgClient.UnicastMessage(s.ctx, remoteSite, message.NewSocketInfoRequest, tunnel.SocketInfoRequest{Id: socketId})
+	if err != nil {
+		log.Error("failed to send new socket info request", "remoteSite", remoteSite, "error", err)
+		return err
+	}
+	return nil
+}
+
 // onRemoteSiteDisconnected callback function, which will be called when
 // a remote site is disconnected (the tunnel to the remoteSite is broken)
 func (s *Site) onRemoteSiteDisconnected(remoteSite string) {
 	log := logger.GetDefault()
 	log.Info("remote site is disconnected", "remoteSite", remoteSite)
 	s.appManager.ProcessRemoteSiteGone(remoteSite)
-	s.remoteSites.Delete(remoteSite)
 }
 
 // onRemoteSiteConnected callback function, which will be called when a new remote site
@@ -267,7 +333,10 @@ func NewSite(ctx context.Context) (*Site, error) {
 		return nil, err
 	}
 	site.appManager = am
-	tm, err := tunnel.NewTunnelManager(config.SiteName, config.Tunnel, site.onNewStream, site.onRemoteSiteConnected, site.onRemoteSiteDisconnected)
+	tm, err := tunnel.NewTunnelManager(
+		config.SiteName, config.Tunnel, site.onNewStream,
+		site.onRemoteSiteConnected, site.onRemoteSiteDisconnected,
+		site.requestNewRemoteSocketInfo)
 	if err != nil {
 		log.Error("failed to create tunnel manager", "error", err)
 		return nil, err
@@ -281,6 +350,8 @@ func NewSite(ctx context.Context) (*Site, error) {
 	}
 	msgClient.RegisterHandler(message.ExchangeInfoRequest, site.onExchangeInfoMessage)
 	msgClient.RegisterHandler(message.ExchangeInfoResponse, site.onExchangeInfoMessage)
+	msgClient.RegisterHandler(message.NewSocketInfoRequest, site.onNewSocketInfoRequest)
+	msgClient.RegisterHandler(message.NewSocketInfoResponse, site.onNewSocketInfoResponse)
 	site.msgClient = msgClient
 
 	return site, nil

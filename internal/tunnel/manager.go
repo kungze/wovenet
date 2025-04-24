@@ -12,59 +12,14 @@ import (
 type TunnelManager struct {
 	siteName               string
 	config                 *Config
-	localSockets           map[string]*socket
-	tunnels                sync.Map // map[remoteSite]*tunnel
+	localSockets           map[string]*tunLocalSocket
+	remoteSockets          sync.Map // map[socketInfo.Id]*tunRemoteSocket
+	tunnels                map[string]*tunnel
 	remoteSiteDisconnected RemoteSiteDisconnectedCallback
 	remoteSiteConnected    RemoteSiteConnectedCallback
 	newStream              NewStreamCallback
-}
-
-func (tm *TunnelManager) listenerLoopAccept(ctx context.Context, listener Listener) {
-	log := logger.GetDefault()
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		default:
-			// Accept tunnel connections from remote sites
-			conn, err := listener.Accept(ctx)
-			// TODO(jeffyjf) Whether need to destroy the listener after getting error
-			if err != nil {
-				log.Error("quic listener encountered an error while accepting a connection", "localAddr", listener.Addr().String(), "error", err)
-				continue
-			}
-			// Wait for a control stream to be opened. We accept connection from remote site passively.
-			// We can't know the connection from which remote site. So we need a control stream here to
-			// tell me the remote site name.
-			stream, err := conn.AcceptStream(ctx)
-			if err != nil {
-				log.Error("QUIC connection encountered an error while accepting a control stream",
-					"localAddr", listener.Addr().String(),
-					"remoteAddr", conn.RemoteAddr().String(), "error", err)
-				continue
-			}
-			buf := make([]byte, 1024)
-			n, err := stream.Read(buf)
-			if err != nil {
-				log.Error("Failed to read handshake data from control stream",
-					"localAddr", listener.Addr().String(),
-					"remoteAddr", conn.RemoteAddr().String(), "error", err)
-				_ = stream.Close()
-				continue
-			}
-			len := int(buf[0])
-			if n != len+1 {
-				_ = stream.Close()
-				continue
-			}
-			// Get remote site name from control stream data
-			remoteSite := string(buf[1:n])
-			go tm.remoteSiteConnected(ctx, remoteSite)
-			log.Info("accept a new remote site connection", "remoteSite", remoteSite, "remoteAddr", conn.RemoteAddr().String())
-			tun, _ := tm.tunnels.LoadOrStore(remoteSite, newTunnel(remoteSite, tm.newStream, tm.tunnelBroken(remoteSite)))
-			tun.(*tunnel).addSlaveConn(ctx, conn)
-		}
-	}
+	requestNewSocketInfo   RequestNewRemoteSocketInfo
+	tunMux                 sync.Mutex
 }
 
 // Start if the tunnel local sockets has configured on the local site,
@@ -76,19 +31,45 @@ func (tm *TunnelManager) Start(ctx context.Context) error {
 		return nil
 	}
 	for _, config := range tm.config.LocalSockets {
-		socket := newSocket(*config)
-		listener, err := socket.Start()
+		socket := newTunLocalSocket(*config, tm.newStream, tm.onDataChannelCreated, tm.onDataChannelDestroyed)
+		tm.localSockets[socket.id] = socket
+		err := socket.Start(ctx)
 		if err != nil {
 			log.Error("failed to start socket listener", "socket", config, "error", err)
 			continue
 		}
 		tm.localSockets[socket.id] = socket
-		go tm.listenerLoopAccept(ctx, listener)
 	}
 	if len(tm.localSockets) == 0 {
 		log.Warn("no local tunnel socket listener is started")
 	}
 	return nil
+}
+
+func (tm *TunnelManager) onDataChannelCreated(remoteSite string, dc *dataChannel) {
+	log := logger.GetDefault()
+	tm.tunMux.Lock()
+	defer tm.tunMux.Unlock()
+	go tm.remoteSiteConnected(context.Background(), remoteSite)
+	tunnel, ok := tm.tunnels[remoteSite]
+	if !ok {
+		tunnel = newTunnel(remoteSite, tm.tunnelBroken(remoteSite))
+		tm.tunnels[remoteSite] = tunnel
+	}
+	log.Info("add a slave data channel to tunnel", "remoteSite", remoteSite, "channelId", dc.GetId())
+	tunnel.AddSlaveDataChannel(dc)
+}
+
+func (tm *TunnelManager) onDataChannelDestroyed(remoteSite string, channelId string) {
+	log := logger.GetDefault()
+	tm.tunMux.Lock()
+	defer tm.tunMux.Unlock()
+	tunnel, ok := tm.tunnels[remoteSite]
+	if !ok {
+		return
+	}
+	log.Info("remove a slave data channel from tunnel", "remoteSite", remoteSite, "channelId", channelId)
+	tunnel.DeleteSlaveDataChannel(channelId)
 }
 
 // callback function, which will be called when the all slave connections
@@ -97,67 +78,64 @@ func (tm *TunnelManager) tunnelBroken(remoteSite string) tunnelBrokenCallback {
 	return func() {
 		log := logger.GetDefault()
 		log.Warn("the tunnel to remote site is broken", "remoteSite", remoteSite)
-		tm.tunnels.Delete(remoteSite)
+		tm.tunMux.Lock()
+		defer tm.tunMux.Unlock()
+		delete(tm.tunnels, remoteSite)
 		tm.remoteSiteDisconnected(remoteSite)
 	}
 }
 
 // OpenNewStream create a new stream in tunnel for local external client and remote app
 func (tm *TunnelManager) OpenNewStream(ctx context.Context, siteName string) (io.ReadWriteCloser, error) {
-	tun, ok := tm.tunnels.Load(siteName)
+	tun, ok := tm.tunnels[siteName]
 	if !ok {
 		return nil, fmt.Errorf("can not found tunnl that connect to remote site: %s", siteName)
 	}
-	return tun.(*tunnel).OpenStream(ctx)
+	return tun.OpenStream(ctx)
 }
 
 // Dial request to establish a new tunnel connection to remote site
-func (tm *TunnelManager) Dial(ctx context.Context, remoteSite string, socket SocketInfo) error {
+func (tm *TunnelManager) AddRemoteSocket(ctx context.Context, remoteSite string, socket SocketInfo) error {
 	log := logger.GetDefault()
-	log.Info("try to dial remote site tunnel socket listner", "remoteSite", remoteSite, "protocol", socket.Protocol, "remoteAddr", fmt.Sprintf("%s:%d", socket.Address, socket.Port))
 
-	var dialer Dialer
-	switch socket.Protocol {
-	case QUIC:
-		dialer = newQuicDialer(socket)
-	case SCTP:
-		return fmt.Errorf("unsuported protocol: %s", SCTP)
-	default:
-		return fmt.Errorf("unsuported protocol: %s", socket.Protocol)
+	// check if the socket is already connected
+	// if the socket is already connected, we will not dial it again
+	var remoteSocket *tunRemoteSocket
+	value, ok := tm.remoteSockets.Load(socket.Id)
+	if ok {
+		// if the remote socket is already added, we will update the socket info
+		// and try to open a new data channel
+		remoteSocket, _ = value.(*tunRemoteSocket)
+		remoteSocket.SocketInfo = socket
+	} else {
+		remoteSocket = newTunRemoteSocket(ctx, socket, tm.siteName, remoteSite, tm.requestNewSocketInfo, tm.newStream, tm.onDataChannelCreated, tm.onDataChannelDestroyed)
+		tm.remoteSockets.Store(socket.Id, remoteSocket)
 	}
 
-	conn, err := dialer.Dial(ctx)
+	err := remoteSocket.OpenDataChannel(ctx)
 	if err != nil {
-		log.Error("Failed to dial remote site", "remoteSite", remoteSite, "remoteAddr", fmt.Sprintf("%s:%d", socket.Address, socket.Port))
+		log.Error("failed to connect remote socket", "remoteSite", remoteSite, "socketInfo", socket, "error", err)
 		return err
 	}
-	log.Info("connect to remote site", "remoteSite", remoteSite, "remoteAddr", fmt.Sprintf("%s:%d", socket.Address, socket.Port))
-	// open a control stream, we will tell remote site the local site name by this control stream
-	stream, err := conn.OpenStream(ctx)
-	if err != nil {
-		log.Error("failed to open control stream", "remoteSite", remoteSite, "error", err)
-		conn.Close()
-		return err
-	}
-	data := []byte(tm.siteName)
-	len := byte(len(data))
-	n, err := stream.Write(append([]byte{len}, data...))
-	if err != nil {
-		log.Error("failed to write date to control stream", "remoteSite", remoteSite, "error", err)
-		_ = stream.Close()
-		conn.Close()
-		return err
-	}
-	if n != int(len)+1 {
-		stream.Close() //nolint:errcheck
-		conn.Close()
-		log.Error("the lenght of data write to control stream is valid", "remoteSite", remoteSite)
-		return fmt.Errorf("write data length is not valid")
-	}
+
 	go tm.remoteSiteConnected(ctx, remoteSite)
-	tun, _ := tm.tunnels.LoadOrStore(remoteSite, newTunnel(remoteSite, tm.newStream, tm.tunnelBroken(remoteSite)))
-	tun.(*tunnel).addSlaveConn(ctx, conn)
+
 	return nil
+}
+
+func (tm *TunnelManager) DelRemoteSocket(ctx context.Context, remoteSite string, socket SocketInfo) {
+	log := logger.GetDefault()
+	value, ok := tm.remoteSockets.Load(socket.Id)
+	if !ok {
+		log.Warn("the remote socket is not found", "remoteSite", remoteSite, "socketInfo", socket)
+		return
+	}
+	remoteSocket, _ := value.(*tunRemoteSocket)
+	if remoteSocket != nil {
+		remoteSocket.Destroy()
+		log.Info("destroy remote socket", "remoteSite", remoteSite, "socketInfo", socket)
+	}
+	tm.remoteSockets.Delete(socket.Id)
 }
 
 // GetLocalSocketInfos get the local tunnel socket infos, so that the
@@ -165,7 +143,7 @@ func (tm *TunnelManager) Dial(ctx context.Context, remoteSite string, socket Soc
 func (tm *TunnelManager) GetLocalSocketInfos() ([]SocketInfo, error) {
 	socketInfos := []SocketInfo{}
 	for _, socket := range tm.localSockets {
-		if !socket.Active() {
+		if !socket.IsActive() {
 			continue
 		}
 		info, err := socket.GetSocketInfo()
@@ -182,7 +160,7 @@ func (tm *TunnelManager) GetLocalSocketInfoById(id string) (*SocketInfo, error) 
 	if !ok {
 		return nil, fmt.Errorf("can not found socket by id: %s", id)
 	}
-	if !socket.Active() {
+	if !socket.IsActive() {
 		return nil, fmt.Errorf("the socket is not active")
 	}
 	info, err := socket.GetSocketInfo()
@@ -195,14 +173,18 @@ func (tm *TunnelManager) GetLocalSocketInfoById(id string) (*SocketInfo, error) 
 func NewTunnelManager(
 	siteName string, config *Config, newStream NewStreamCallback,
 	remoteSiteConnected RemoteSiteConnectedCallback,
-	removeSiteDisconnected RemoteSiteDisconnectedCallback) (*TunnelManager, error) {
+	remoteSiteDisconnected RemoteSiteDisconnectedCallback,
+	requestNewSocketInfo RequestNewRemoteSocketInfo) (*TunnelManager, error) {
 	return &TunnelManager{
 		siteName:               siteName,
 		config:                 config,
-		tunnels:                sync.Map{},
+		tunnels:                map[string]*tunnel{},
 		newStream:              newStream,
 		remoteSiteConnected:    remoteSiteConnected,
-		remoteSiteDisconnected: removeSiteDisconnected,
-		localSockets:           make(map[string]*socket),
+		remoteSiteDisconnected: remoteSiteDisconnected,
+		requestNewSocketInfo:   requestNewSocketInfo,
+		localSockets:           make(map[string]*tunLocalSocket),
+		remoteSockets:          sync.Map{},
+		tunMux:                 sync.Mutex{},
 	}, nil
 }
