@@ -1,7 +1,9 @@
 package app
 
 import (
+	"fmt"
 	"net"
+	"strings"
 )
 
 type localApp struct {
@@ -10,8 +12,11 @@ type localApp struct {
 
 // GetConnection get a connection which connect to the local app
 func (la *localApp) GetConnection() (net.Conn, error) {
-	network := networkType(la.config.AppSocket)
-	conn, err := net.Dial(network, la.config.AppSocket)
+	s := strings.SplitN(la.config.AppSocket, ":", 2)
+	if len(s) != 2 {
+		return nil, fmt.Errorf("the appSocket: %s is invalid, the format must be protocol:ipaddr:port", la.config.AppSocket)
+	}
+	conn, err := net.Dial(strings.ToLower(s[0]), s[1])
 	if err != nil {
 		return nil, err
 	}

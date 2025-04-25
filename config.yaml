@@ -99,16 +99,20 @@ tunnel:
 # Specify which applications can be accessed by remote peer sites.
 # The both options appName and appSocket are required.
 # The max lenght of appName is 255, and appName must be unique
-# in the local site. The appSocket is the socket of the local application
+# in the local site. The appSocket is the socket of the local application.
+# The valid socket protocols are tcp and unix.
 # 指定本端哪些应用可以被远程对等站点访问
 # 两个参数 appName 和 appSocket 都是必须被设置的
 # appName 的最大长度是 255，且在本地站点中必须唯一
 # appSocket 是本地应用的套接字
+# 当前支持的套接字协议有 tcp 和 unix
 localExposedApps:
-- appSocket: 192.168.122.80:8080
+- appSocket: tcp:192.168.122.80:8080
   appName: web
-- appSocket: 127.0.0.1:22
+- appSocket: tcp:127.0.0.1:22
   appName: ssh
+- appSocket: unix:/var/run/docker.sock
+  appName: docker
 
 # Specify the local site can access which remote applications of remote sites
 # All these three options are required.
@@ -121,7 +125,14 @@ localExposedApps:
 remoteApps:
 - siteName: site02
   appName: web
-  localSocket: 127.0.0.1:28080
+  localSocket: tcp:127.0.0.1:28080
+- siteName: site02
+  // convert unix socket to tcp socket
+  // 将 unix socket 转换为 tcp socket
+  appName: docker
+  localSocket: tcp:0.0.0.0:10986
 - siteName: site03
   appName: ssh
-  localSocket: 127.0.0.1:20022
+  // convert ipv4 app to ipv6 app
+  // 将 ipv4 的应用转换为 ipv6 的应用
+  localSocket: tcp:[::1]:20022

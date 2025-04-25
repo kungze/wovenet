@@ -275,6 +275,7 @@ func (s *Site) onNewStream(stream tunnel.Stream) {
 	conn, err := s.appManager.ConnectToLocalApp(appName)
 	if err != nil {
 		log.Error("failed to connect to local app", "localApp", appName, "error", err)
+		return
 	}
 	defer conn.Close() //nolint:errcheck
 	if n > len+1 {

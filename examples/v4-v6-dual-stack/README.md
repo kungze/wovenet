@@ -69,7 +69,7 @@ tunnel:
     publicPort: 25890
 
 localExposedApps:
-- appSocket: 127.0.0.1:5201
+- appSocket: tcp:127.0.0.1:5201
   appName: iperf
 ```
 
@@ -122,7 +122,7 @@ tunnel:
 remoteApps:
 - siteName: aws
   appName: iperf
-  localSocket: 127.0.0.1:5201
+  localSocket: tcp:127.0.0.1:5201
 ```
 
 **Note:**

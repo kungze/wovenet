@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/netip"
 	"slices"
+	"strings"
 )
 
 type LocalExposedAppConfig struct {
@@ -27,9 +28,18 @@ func CheckLocalExposedAppConfig(configs []*LocalExposedAppConfig) error {
 		if len(cfg.AppName) > 255 {
 			return fmt.Errorf("the appName: %s is too long, the max length is 255", cfg.AppName)
 		}
-		_, err := netip.ParseAddrPort(cfg.AppSocket)
-		if err != nil {
-			return fmt.Errorf("the app socket: %s is invalid", cfg.AppSocket)
+		s := strings.SplitN(cfg.AppSocket, ":", 2)
+		if len(s) != 2 {
+			return fmt.Errorf("the appSocket: %s is invalid, the format must be <protocol>:<socket-addr>", cfg.AppSocket)
+		}
+		if !slices.Contains([]string{"tcp", "unix"}, s[0]) {
+			return fmt.Errorf("the appSocket: %s is invalid, the protocol must be tcp or unix", cfg.AppSocket)
+		}
+		if strings.ToLower(s[0]) == "tcp" {
+			_, err := netip.ParseAddrPort(s[1])
+			if err != nil {
+				return fmt.Errorf("the appSocket: %s is invalid", cfg.AppSocket)
+			}
 		}
 		if slices.Contains(localExposedAppNames, cfg.AppName) {
 			return fmt.Errorf("the appName: %s is duplicated", cfg.AppName)
@@ -50,11 +60,19 @@ func CheckRemoteAddConfig(configs []*RemoteAppConfig) error {
 		if len(cfg.AppName) > 255 {
 			return fmt.Errorf("the appName: %s is too long, the max length is 255", cfg.AppName)
 		}
-		_, err := netip.ParseAddrPort(cfg.LocalSocket)
-		if err != nil {
-			return fmt.Errorf("the localSocket: %s is invalid", cfg.LocalSocket)
+		s := strings.SplitN(cfg.LocalSocket, ":", 2)
+		if len(s) != 2 {
+			return fmt.Errorf("the localSocket: %s is invalid, the format must be <protocol>:<socket-addr>", cfg.LocalSocket)
 		}
-
+		if !slices.Contains([]string{"tcp", "unix"}, s[0]) {
+			return fmt.Errorf("the localSocket: %s is invalid, the protocol must be tcp or unix", cfg.LocalSocket)
+		}
+		if strings.ToLower(s[0]) == "tcp" {
+			_, err := netip.ParseAddrPort(s[1])
+			if err != nil {
+				return fmt.Errorf("the localSocket: %s is invalid", cfg.LocalSocket)
+			}
+		}
 	}
 	return nil
 }

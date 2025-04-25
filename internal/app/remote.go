@@ -2,8 +2,12 @@ package app
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net"
+	"os"
+	"path/filepath"
+	"strings"
 	"sync/atomic"
 
 	"gihtub.com/kungze/wovenet/internal/logger"
@@ -20,8 +24,28 @@ type remoteApp struct {
 func (ra *remoteApp) listen(ctx context.Context, callback ClientConnectedCallback) error {
 	ra.active.Store(true)
 	log := logger.GetDefault()
-	networkType := networkType(ra.config.LocalSocket)
-	l, err := net.Listen(networkType, ra.config.LocalSocket)
+	s := strings.SplitN(ra.config.LocalSocket, ":", 2)
+	if len(s) != 2 {
+		return fmt.Errorf("the localSocket: %s is invalid, the format must be protocol:ipaddr:port", ra.config.LocalSocket)
+	}
+	if strings.ToLower(s[0]) == "unix" {
+		// check if the base dir of the socket path exists. if not, create it.
+		dir := filepath.Dir(s[1])
+		err := os.MkdirAll(dir, os.ModePerm)
+		if err != nil {
+			log.Error("failed to create local socket dir", "localSocket", ra.config.LocalSocket, "remoteSite", ra.config.SiteName, "remoteApp", ra.config.AppName, "error", err)
+			return err
+		}
+		// check if the socket file exists. if yes, remove it.
+		if _, err := os.Stat(s[1]); err == nil {
+			err := os.Remove(s[1])
+			if err != nil {
+				log.Error("failed to remove local socket file", "localSocket", ra.config.LocalSocket, "remoteSite", ra.config.SiteName, "remoteApp", ra.config.AppName, "error", err)
+				return err
+			}
+		}
+	}
+	l, err := net.Listen(strings.ToLower(s[0]), s[1])
 	if err != nil {
 		ra.active.Store(false)
 		log.Error("failed to listen local socket for remote app", "localSocket", ra.config.LocalSocket, "remoteApp", ra.config.AppName, "error", err)

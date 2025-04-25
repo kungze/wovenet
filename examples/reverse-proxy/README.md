@@ -49,10 +49,10 @@ tunnel:
 remoteApps:
 - siteName: private-01
   appName: web
-  localSocket: 0.0.0.0:28080
+  localSocket: tcp:0.0.0.0:28080
 - siteName: private-02
   appName: ssh
-  localSocket: 0.0.0.0:59822
+  localSocket: tcp:0.0.0.0:59822
 ```
 
 ### Private-01 Host Configuration
@@ -75,7 +75,7 @@ messageChannel:
     topic: "kungze/wovenet/reverse-proxy-78yted"
 
 localExposedApps:
-- appSocket: 172.26.142.105:80
+- appSocket: tcp:172.26.142.105:80
   appName: web
 ```
 
@@ -99,7 +99,7 @@ messageChannel:
     topic: "kungze/wovenet/reverse-proxy-78yted"
 
 localExposedApps:
-- appSocket: 192.168.1.2:22
+- appSocket: tcp:192.168.1.2:22
   appName: ssh
 ```
 

@@ -69,7 +69,7 @@ tunnel:
     publicPort: 25890
 
 localExposedApps:
-- appSocket: 127.0.0.1:5201
+- appSocket: tcp:127.0.0.1:5201
   appName: iperf
 ```
 
@@ -120,7 +120,7 @@ tunnel:
 remoteApps:
 - siteName: aws
   appName: iperf
-  localSocket: 127.0.0.1:5201
+  localSocket: tcp:127.0.0.1:5201
 ```
 
 **注意：**在本地，公网 IPv4 地址设置在 NAT 网关/光猫上，需要在NAT 网关/光猫上配置好端口映射规则。上面配置对应的端口映射规则：外部端口为 36092 内部端口为 26098，协议为 UDP。
