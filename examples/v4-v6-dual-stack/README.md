@@ -49,6 +49,9 @@ Create a `config.yaml` file with the following content:
 ```yaml
 siteName: aws
 
+crypto:
+  key: "aA6wBHTYd%#dOPr8"
+
 logger:
   level: DEBUG
   file: ""
@@ -56,7 +59,6 @@ logger:
 
 messageChannel:
   protocol: mqtt
-  cryptoKey: "aA6wBHTYd%#dOPr8"
   mqtt:
     brokerServer: mqtt://mqtt.eclipseprojects.io:1883
     topic: "kungze/wovenet/dual-stack-ui78Tydwq"
@@ -99,6 +101,9 @@ Create a `config.yaml` file with the following content:
 ```yaml
 siteName: local
 
+crypto:
+  key: "aA6wBHTYd%#dOPr8"
+
 logger:
   level: DEBUG
   file: ""
@@ -106,7 +111,6 @@ logger:
 
 messageChannel:
   protocol: mqtt
-  cryptoKey: "aA6wBHTYd%#dOPr8"
   mqtt:
     brokerServer: mqtt://mqtt.eclipseprojects.io:1883
     topic: "kungze/wovenet/dual-stack-ui78Tydwq"
@@ -137,7 +141,7 @@ Start `wovenet` with:
 
 **Important Notes:**
 
-* It is strongly recommended to modify `messageChannel.cryptoKey` and `messageChannel.mqtt.topic`, and never expose these values in a public environment. If exposed, malicious users might connect to your site network and potentially launch attacks.
+* It is strongly recommended to modify `crypto.Key` and `messageChannel.mqtt.topic`, and never expose these values in a public environment. If exposed, malicious users might connect to your site network and potentially launch attacks.
 
 ### Validation Results
 

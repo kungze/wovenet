@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"gihtub.com/kungze/wovenet/internal/crypto"
 	"gihtub.com/kungze/wovenet/internal/logger"
 )
 
@@ -26,12 +27,12 @@ type MessageClient interface {
 	UnicastMessage(ctx context.Context, siteName string, msgKind MessageKind, data any) error
 }
 
-func NewMessageClient(ctx context.Context, config Config, siteName string) (MessageClient, error) {
+func NewMessageClient(ctx context.Context, config Config, cryptoConfig crypto.Config, siteName string) (MessageClient, error) {
 	log := logger.GetDefault()
 	log.Info("creating new message client", "protocol", config.Protocol)
 	switch strings.ToLower(config.Protocol) {
 	case MQTT:
-		client, err := newMqttClient(ctx, *config.Mqtt, siteName, config.CryptoKey)
+		client, err := newMqttClient(ctx, *config.Mqtt, cryptoConfig, siteName)
 		if err != nil {
 			log.Error("failed to create mqtt client", "error", err)
 			return nil, err

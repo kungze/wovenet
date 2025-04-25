@@ -8,10 +8,12 @@ import (
 	"sync"
 	"time"
 
-	"gihtub.com/kungze/wovenet/internal/logger"
 	"github.com/eclipse/paho.golang/autopaho"
 	"github.com/eclipse/paho.golang/paho"
 	"github.com/google/uuid"
+
+	"gihtub.com/kungze/wovenet/internal/crypto"
+	"gihtub.com/kungze/wovenet/internal/logger"
 )
 
 const (
@@ -33,7 +35,7 @@ type mqttClient struct {
 	clientId            string
 	siteName            string
 	topic               string
-	cryptoKey           string
+	crypto              *crypto.Crypto
 	siteNameClientIdMap sync.Map
 }
 
@@ -82,15 +84,22 @@ func (mc *mqttClient) publishMassage(ctx context.Context, topic string, msgKind 
 		Kind:     msgKind,
 		Data:     data,
 	}
-	mData, err := json.Marshal(payload)
+	jsonData, err := json.Marshal(payload)
 	if err != nil {
 		log.Error("failed to marshal message payload", "error", err)
 		return err
 	}
+	// Encrypt the message payload
+	encrRes, err := mc.crypto.Encrypt(jsonData)
+	if err != nil {
+		log.Error("failed to encrypt message payload", "error", err)
+		return err
+	}
+
 	_, err = mc.mqttClient.Publish(ctx, &paho.Publish{
 		QoS:     2,
 		Topic:   topic,
-		Payload: []byte(encrypt(mData, mc.cryptoKey)),
+		Payload: []byte(encrRes),
 	})
 	if err != nil {
 		log.Error("failed to publish message", "error", err)
@@ -105,8 +114,15 @@ func (mc *mqttClient) onPublishReceived(r paho.PublishReceived) (bool, error) {
 		return true, nil
 	}
 
+	// Decrypt the message payload
+	rawPayload, err := mc.crypto.Decrypt(string(r.Packet.Payload))
+	if err != nil {
+		log.Error("failed to decrypt message payload", "error", err)
+		return false, err
+	}
+
 	payload := &Payload{}
-	if err := json.Unmarshal(decrypt(string(r.Packet.Payload), mc.cryptoKey), payload); err != nil {
+	if err := json.Unmarshal(rawPayload, payload); err != nil {
 		log.Error("failed to umarshal message", "error", err)
 		return false, err
 	}
@@ -141,14 +157,19 @@ func (mc *mqttClient) onError(err error) {
 	log.Error("message client encounter error", "error", err)
 }
 
-func newMqttClient(ctx context.Context, mqttConfig mqttConfig, siteName string, cryptoKey string) (*mqttClient, error) {
+func newMqttClient(ctx context.Context, mqttConfig mqttConfig, cryptoConfig crypto.Config, siteName string) (*mqttClient, error) {
 	log := logger.GetDefault()
+	crypto, err := crypto.NewCrypto([]byte(cryptoConfig.Key))
+	if err != nil {
+		log.Error("failed to create crypto", "error", err)
+		return nil, err
+	}
 	mClient := &mqttClient{
 		siteName:            siteName,
+		crypto:              crypto,
 		clientId:            uuid.NewString(),
 		handlers:            make(map[MessageKind]Callback),
 		topic:               mqttConfig.Topic,
-		cryptoKey:           cryptoKey,
 		siteNameClientIdMap: sync.Map{},
 	}
 	if mqttConfig.BrokerServer == "" {

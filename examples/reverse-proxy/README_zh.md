@@ -26,6 +26,9 @@
 ```yaml
 siteName: public
 
+crypto:
+  key: "7YUw12TYd%#dse45"
+
 logger:
   level: DEBUG
   file: ""
@@ -33,7 +36,6 @@ logger:
 
 messageChannel:
   protocol: mqtt
-  cryptoKey: "7YUw12TYd%#dse45"
   mqtt:
     brokerServer: mqtt://mqtt.eclipseprojects.io:1883
     topic: "kungze/wovenet/reverse-proxy-78yted"
@@ -62,6 +64,9 @@ remoteApps:
 ```yaml
 siteName: private-01
 
+crypto:
+  key: "7YUw12TYd%#dse45"
+
 logger:
   level: DEBUG
   file: ""
@@ -69,7 +74,6 @@ logger:
 
 messageChannel:
   protocol: mqtt
-  cryptoKey: "7YUw12TYd%#dse45"
   mqtt:
     brokerServer: mqtt://mqtt.eclipseprojects.io:1883
     topic: "kungze/wovenet/reverse-proxy-78yted"
@@ -86,6 +90,9 @@ localExposedApps:
 ```yaml
 siteName: private-02
 
+crypto:
+  key: "7YUw12TYd%#dse45"
+
 logger:
   level: DEBUG
   file: ""
@@ -93,7 +100,6 @@ logger:
 
 messageChannel:
   protocol: mqtt
-  cryptoKey: "7YUw12TYd%#dse45"
   mqtt:
     brokerServer: mqtt://mqtt.eclipseprojects.io:1883
     topic: "kungze/wovenet/reverse-proxy-78yted"
@@ -111,7 +117,7 @@ localExposedApps:
 
 **特别注意：**
 
-* 强烈建议修改 `messageChannel.cryptoKey` 和  `messageChannel.mqtt.topic`。并且不要在公网环境暴露这两个值。如果暴露，可能会被不怀好意的人利用，连接到你的站点网络，可能会发起恶意攻击。
+* 强烈建议修改 `crypto.Key` 和  `messageChannel.mqtt.topic`。并且不要在公网环境暴露这两个值。如果暴露，可能会被不怀好意的人利用，连接到你的站点网络，可能会发起恶意攻击。
 
 * 上面配置中，需要用到公网主机的 UDP 25890 端口，TCP 28080 端口，TCP 59822 端口，需要在安全组，或者防火墙配置规则，放行这几个端口。
 

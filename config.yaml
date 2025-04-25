@@ -3,6 +3,15 @@
 # siteName 必须是全局唯一的，它是每个站定的唯一标识，每个 site 应当有不同的 siteName
 siteName: site01
 
+# Use to encrypt message payload and handshake data
+# 用于加密消息负载和握手数据
+crypto:
+  # The min length of the key is 8 bytes, and the max length is 32 bytes.
+  # It's strongly recommended to change the default value and set a high strength key
+  # 密钥的最小长度是 8 字节，最大长度是 32 字节
+  # 强烈建议你修改这个默认值，设置一个高强度的密钥
+  key: "your-own-key"
+
 logger:
   level: DEBUG
   # /var/log/wovenet.log
@@ -14,13 +23,6 @@ messageChannel:
   # Currently, we only support mqtt protocol
   # 目前，我们只支持 mqtt 协议
   protocol: mqtt
-  # The 16 bit key used to encrypt message payload.
-  # NOTE: Strongly suggest you change it for security(don't use the default value directly).
-  # This value should remain the same for each site.
-  # 设置一个 16 bit 的 key 用于加密传输数据。
-  # 为了安全起见强烈建议你在使用时修改这个值（不要使用这个默认值）。
-  # 每个站点这个值应该保持相同。
-  cryptoKey: "Ytew12TYds!dsd5)"
   mqtt:
     # mqtt brokcer server
     # mqtt 服务地址
@@ -28,8 +30,11 @@ messageChannel:
     # NOTE: This is important, you are strongly suggested to change this(don't use the default value directly).
     # The sites which have some topic will try to establish tunnel connections each other
     # In other words, the same topic sites will join the same network
+    # **If you don't change this value**, you may connect to other sites network, which may cause
+    # information leak
     # NOTE: 重要提示：强烈建议你修改这个值（不要使用这个默认值）
-    # 相同 topic 的站点之间会尝试互相建立隧道
+    # 相同 topic 的站点之间会尝试互相建立隧道。
+    # **如果你不修改这个值**可能会连接到其他的站点网络，造成信息的泄露
     topic: "kungze/wovenet/your-own-private-topic"
 
 tunnel:
@@ -127,12 +132,12 @@ remoteApps:
   appName: web
   localSocket: tcp:127.0.0.1:28080
 - siteName: site02
-  // convert unix socket to tcp socket
-  // 将 unix socket 转换为 tcp socket
+  # convert unix socket to tcp socket
+  # 将 unix socket 转换为 tcp socket
   appName: docker
   localSocket: tcp:0.0.0.0:10986
 - siteName: site03
   appName: ssh
-  // convert ipv4 app to ipv6 app
-  // 将 ipv4 的应用转换为 ipv6 的应用
+  # convert ipv4 app to ipv6 app
+  # 将 ipv4 的应用转换为 ipv6 的应用
   localSocket: tcp:[::1]:20022
