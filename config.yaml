@@ -102,22 +102,36 @@ tunnel:
       url: https://ipinfo.io/ip
 
 # Specify which applications can be accessed by remote peer sites.
-# The both options appName and appSocket are required.
-# The max lenght of appName is 255, and appName must be unique
-# in the local site. The appSocket is the socket of the local application.
-# The valid socket protocols are tcp and unix.
+# `mode` specifies the method used to expose local APPs, support two values: `single` and `range` (single is default)
+# `appName` must be unique in the local site, with a maximum length of 255 characters
+# `appSocket` specifies the socket address of local site's APP to expose, it must be set when `mode` is `single`
+# it will be ignored when mode set as range
+# `portRange` it must be set when `mode` is `range`, it specifies port range of exposed apps
+# `addressRange` it must be set when `mode` is `range`, it specifies ip address range of exposed Apps
 # 指定本端哪些应用可以被远程对等站点访问
-# 两个参数 appName 和 appSocket 都是必须被设置的
-# appName 的最大长度是 255，且在本地站点中必须唯一
-# appSocket 是本地应用的套接字
-# 当前支持的套接字协议有 tcp 和 unix
+# mode 指定以那种方式暴露本地 APP，当前支持两种方式：single 和 range（默认值为 single）。
+# appName 的最大长度是 255，且在本地站点中必须唯一。
+# appSocket 指定暴露的本端 APP 的套接字地址，当 mode 为 single 时，该值必须本设置，当 mode 为 range 时会忽略该值，
+# 当前支持的 APP 套接字协议有 tcp 和 unix。
+# portRange 当 mode 为 range 时，该项必须被设置，用于指定本端暴露的端口范围。
+# addressRange 当 mode 为 range 时，该项必须被设置，用于指定本端暴露的 ip 地址范围。
 localExposedApps:
 - appSocket: tcp:192.168.122.80:8080
   appName: web
 - appSocket: tcp:127.0.0.1:22
   appName: ssh
+  mode: single
 - appSocket: unix:/var/run/docker.sock
   appName: docker
+- appName: vdi
+  mode: range
+  portRange:
+  - 5900
+  - 5901-5990
+  addressRange:
+  - 10.0.0.6
+  - 10.0.2.0/24
+  - ::1
 
 # Specify the local site can access which remote applications of remote sites
 # All these three options are required.
@@ -138,6 +152,16 @@ remoteApps:
   localSocket: tcp:0.0.0.0:10986
 - siteName: site03
   appName: ssh
-  # convert ipv4 app to ipv6 app
+  # convert ipv4 APP to ipv6 APP
   # 将 ipv4 的应用转换为 ipv6 的应用
   localSocket: tcp:[::1]:20022
+- siteName: site03
+  appName: vdi
+  appSocket: tcp:10.0.2.123:25900
+  localSocket: tcp:10.0.2.2:5900
+# Because the vdi APP has range mode, the appSocket need be specified here
+# 因为 vdi APP 的 mode 为 rang，所以这儿必须要指定 appSocket
+- siteName: site03
+  appName: vdi
+  appSocket: tcp:10.0.2.123:35900
+  localSocket: tcp:10.0.2.3:5900

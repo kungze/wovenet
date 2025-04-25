@@ -22,14 +22,14 @@ func (am *AppManager) GetExposedApps() []LocalExposedApp {
 }
 
 // ConnectToLocalApp get a connection which connect to the local app
-func (am *AppManager) ConnectToLocalApp(appName string) (io.ReadWriteCloser, error) {
+func (am *AppManager) ConnectToLocalApp(appName string, socket string) (io.ReadWriteCloser, error) {
 	log := logger.GetDefault()
 	app, ok := am.localExposedApps[appName]
 	if !ok {
 		log.Error("local app can not found", "localApp", appName)
 		return nil, fmt.Errorf("app: %s can not found", appName)
 	}
-	return app.GetConnection()
+	return app.GetConnection(socket)
 }
 
 // ProcessNewRemoteSite when a new remote site connected successfully, we
