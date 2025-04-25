@@ -13,7 +13,7 @@ import (
 	"gihtub.com/kungze/wovenet/internal/logger"
 )
 
-type ClientConnectedCallback func(remoteSite string, remoteApp string, conn io.ReadWriteCloser)
+type ClientConnectedCallback func(remoteSite string, appName string, appSocket string, conn io.ReadWriteCloser)
 
 type remoteApp struct {
 	config   RemoteAppConfig
@@ -28,7 +28,7 @@ func (ra *remoteApp) listen(ctx context.Context, callback ClientConnectedCallbac
 	if len(s) != 2 {
 		return fmt.Errorf("the localSocket: %s is invalid, the format must be protocol:ipaddr:port", ra.config.LocalSocket)
 	}
-	if strings.ToLower(s[0]) == "unix" {
+	if strings.ToLower(s[0]) == UNIX {
 		// check if the base dir of the socket path exists. if not, create it.
 		dir := filepath.Dir(s[1])
 		err := os.MkdirAll(dir, os.ModePerm)
@@ -69,7 +69,7 @@ func (ra *remoteApp) listen(ctx context.Context, callback ClientConnectedCallbac
 					return
 				}
 				log.Info("a new client connection request incoming", "clientAddr", conn.RemoteAddr().String(), "remoteApp", ra.config.AppName)
-				go callback(ra.config.SiteName, ra.config.AppName, conn)
+				go callback(ra.config.SiteName, ra.config.AppName, ra.config.AppSocket, conn)
 			}
 		}
 	}()

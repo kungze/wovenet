@@ -3,6 +3,7 @@ package site
 import (
 	"context"
 	"encoding/binary"
+	"encoding/json"
 	"fmt"
 	"io"
 	"sync"
@@ -16,6 +17,14 @@ import (
 	"github.com/go-viper/mapstructure/v2"
 	"github.com/spf13/viper"
 )
+
+// AppInfo it will be packaged as the handshake data in the first packet of each app stream.
+// It informs the remote site which app the external client from the local site wants to access
+// via the app stream
+type AppInfo struct {
+	Name   string `json:"name"`
+	Socket string `json:"socket"`
+}
 
 type Site struct {
 	msgClient     message.MessageClient
@@ -194,13 +203,13 @@ func (s *Site) onRemoteSiteConnected(ctx context.Context, remoteSite string) {
 
 // onNewClientConnection callback function, which will be called when an external client connects to the
 // local socket which is listened for remote app
-func (s *Site) onNewClientConnection(remoteSite string, remoteApp string, conn io.ReadWriteCloser) {
+func (s *Site) onNewClientConnection(remoteSite string, appName string, appSocket string, conn io.ReadWriteCloser) {
 	defer conn.Close() //nolint:errcheck
 	log := logger.GetDefault()
 
 	// Open a new strem in the tunnel which link the local site and the remote site
 	// which the remote app is located in
-	log.Info("try to open a new stream in tunnel to connect to remote app", "remoteSite", remoteSite, "remoteApp", remoteApp)
+	log.Info("try to open a new stream in tunnel to connect to remote app", "remoteSite", remoteSite, "remoteApp", appName)
 	stream, err := s.tunnelManager.OpenNewStream(s.ctx, remoteSite)
 	if err != nil {
 		log.Error("failed to open a new stream", "remoteSite", remoteSite, "error", err)
@@ -208,21 +217,27 @@ func (s *Site) onNewClientConnection(remoteSite string, remoteApp string, conn i
 	}
 	defer stream.Close() //nolint:errcheck
 
-	encrRes, err := s.crypto.Encrypt([]byte(remoteApp))
+	handShake, err := json.Marshal(AppInfo{Name: appName, Socket: appSocket})
+	if err != nil {
+		log.Error("failed to marshal app info", "error", err)
+		return
+	}
+
+	encrBuf, err := s.crypto.Encrypt(handShake)
 	if err != nil {
 		log.Error("failed to encrypt handshake data", "error", err)
 		return
 	}
 
 	// Prepare the handshake data, to tell remote site we want to connect to which app
-	data := []byte(encrRes)
+	data := []byte(encrBuf)
 	dataLen := make([]byte, 2)
 	binary.LittleEndian.PutUint16(dataLen, uint16(len(data)))
-	log.Info("try to write handshake data to app stream", "remoteSite", remoteSite, "remoteApp", remoteApp)
+	log.Info("try to write handshake data to app stream", "remoteSite", remoteSite, "remoteApp", appName)
 	n, err := stream.Write(append(dataLen, data...))
 	if err != nil {
 		log.Error("failed to write handshake data to app stream",
-			"remoteSite", remoteSite, "remoteApp", remoteApp, "error", err)
+			"remoteSite", remoteSite, "remoteApp", appName, "error", err)
 		return
 	}
 	if n != len(data)+2 {
@@ -234,27 +249,27 @@ func (s *Site) onNewClientConnection(remoteSite string, remoteApp string, conn i
 	wg.Add(2)
 	go func() {
 		log.Info("start to copy data from tunnel stream to local client",
-			"remoteSite", remoteSite, "remoteApp", remoteApp)
+			"remoteSite", remoteSite, "remoteApp", appName)
 		defer wg.Done()
 		_, err := io.Copy(conn, stream)
 		if err != nil {
 			log.Error("failed to copy data from tunnel stream to local client",
-				"remoteSite", remoteSite, "remoteApp", remoteApp, "error", err)
+				"remoteSite", remoteSite, "remoteApp", appName, "error", err)
 		}
 		log.Warn("the coroutine which copy data from tunnel stream to local client exit",
-			"remoteSite", remoteSite, "remoteApp", remoteApp)
+			"remoteSite", remoteSite, "remoteApp", appName)
 	}()
 	go func() {
 		log.Info("start to copy data from local client to tunnel stream",
-			"remoteSite", remoteSite, "remoteApp", remoteApp)
+			"remoteSite", remoteSite, "remoteApp", appName)
 		defer wg.Done()
 		_, err := io.Copy(stream, conn)
 		if err != nil {
 			log.Error("failed to copy data from local client to tunnel stream",
-				"remoteSite", remoteSite, "remoteApp", remoteApp, "error", err)
+				"remoteSite", remoteSite, "remoteApp", appName, "error", err)
 		}
 		log.Warn("the coroutine which copy data from local client to tunnel stream exit",
-			"remoteSite", remoteSite, "remoteApp", remoteApp)
+			"remoteSite", remoteSite, "remoteApp", appName)
 	}()
 	wg.Wait()
 }
@@ -285,45 +300,55 @@ func (s *Site) onNewStream(stream tunnel.Stream) {
 		return
 	}
 	// Get app name from handshake data
-	decRes, err := s.crypto.Decrypt(string(buff[2 : dataLen+2]))
+	decBuf, err := s.crypto.Decrypt(string(buff[2 : dataLen+2]))
 	if err != nil {
 		log.Error("failed to decrypt handshake data")
 		return
 	}
-	appName := string(decRes)
-	log.Info("try to connect to local app", "localApp", appName)
-	conn, err := s.appManager.ConnectToLocalApp(appName)
+
+	appInfo := AppInfo{}
+	err = json.Unmarshal(decBuf, &appInfo)
 	if err != nil {
-		log.Error("failed to connect to local app", "localApp", appName, "error", err)
+		log.Error("failed to unmarshal app info", "error", err)
+		return
+	}
+	if appInfo.Socket != "" {
+		log.Info("the remote site has specified app socket", "localApp", appInfo.Name, "socket", appInfo.Socket)
+	}
+
+	log.Info("try to connect to local app", "localApp", appInfo.Name)
+	conn, err := s.appManager.ConnectToLocalApp(appInfo.Name, appInfo.Socket)
+	if err != nil {
+		log.Error("failed to connect to local app", "localApp", appInfo.Name, "error", err)
 		return
 	}
 	defer conn.Close() //nolint:errcheck
 	if n > int(dataLen+2) {
 		_, err := conn.Write(buff[dataLen+2 : n])
 		if err != nil {
-			log.Error("failed to write data to local app", "localApp", appName, "error", err)
+			log.Error("failed to write data to local app", "localApp", appInfo.Name, "error", err)
 			return
 		}
 	}
 	wg := sync.WaitGroup{}
 	wg.Add(2)
 	go func() {
-		log.Info("start to copy data from tunnel stream to local app", "localApp", appName)
+		log.Info("start to copy data from tunnel stream to local app", "localApp", appInfo.Name)
 		defer wg.Done()
 		_, err := io.Copy(conn, stream)
 		if err != nil {
-			log.Error("failed to copy data from tunnel stream to local app", "localApp", appName)
+			log.Error("failed to copy data from tunnel stream to local app", "localApp", appInfo.Name)
 		}
-		log.Warn("the coroutine which copy data from tunnel stream to local app exit", "localApp", appName)
+		log.Warn("the coroutine which copy data from tunnel stream to local app exit", "localApp", appInfo.Name)
 	}()
 	go func() {
-		log.Info("start to copy data from local app to tunnel stream", "localApp", appName)
+		log.Info("start to copy data from local app to tunnel stream", "localApp", appInfo.Name)
 		defer wg.Done()
 		_, err := io.Copy(stream, conn)
 		if err != nil {
-			log.Error("failed to copy data from local app to tunnel stream", "localApp", appName)
+			log.Error("failed to copy data from local app to tunnel stream", "localApp", appInfo.Name)
 		}
-		log.Warn("the coroutine which copy data from local app to tunnel stream exit", "localApp", appName)
+		log.Warn("the coroutine which copy data from local app to tunnel stream exit", "localApp", appInfo.Name)
 	}()
 	wg.Wait()
 }
