@@ -49,6 +49,9 @@
 ```yaml
 siteName: aws
 
+crypto:
+  key: "aA6wBHTYd%#dOPr8"
+
 logger:
   level: DEBUG
   file: ""
@@ -56,7 +59,6 @@ logger:
 
 messageChannel:
   protocol: mqtt
-  cryptoKey: "aA6wBHTYd%#dOPr8"
   mqtt:
     brokerServer: mqtt://mqtt.eclipseprojects.io:1883
     topic: "kungze/wovenet/dual-stack-ui78Tydwq"
@@ -97,6 +99,9 @@ Server listening on 5201 (test #1)
 ```yaml
 siteName: local
 
+crypto:
+  key: "aA6wBHTYd%#dOPr8"
+
 logger:
   level: DEBUG
   file: ""
@@ -104,7 +109,6 @@ logger:
 
 messageChannel:
   protocol: mqtt
-  cryptoKey: "aA6wBHTYd%#dOPr8"
   mqtt:
     brokerServer: mqtt://mqtt.eclipseprojects.io:1883
     topic: "kungze/wovenet/dual-stack-ui78Tydwq"
@@ -133,7 +137,7 @@ remoteApps:
 
 **特别注意：**
 
-* 强烈建议修改 `messageChannel.cryptoKey` 和  `messageChannel.mqtt.topic`。并且不要在公网环境暴露这两个值。如果暴露，可能会被不怀好意的人利用，连接到你的站点网络，可能会发起恶意攻击。
+* 强烈建议修改 `crypto.Key` 和  `messageChannel.mqtt.topic`。并且不要在公网环境暴露这两个值。如果暴露，可能会被不怀好意的人利用，连接到你的站点网络，可能会发起恶意攻击。
 
 
 ### 验证结果

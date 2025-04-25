@@ -2,12 +2,14 @@ package site
 
 import (
 	"context"
+	"encoding/binary"
 	"fmt"
 	"io"
 	"sync"
 	"time"
 
 	"gihtub.com/kungze/wovenet/internal/app"
+	"gihtub.com/kungze/wovenet/internal/crypto"
 	"gihtub.com/kungze/wovenet/internal/logger"
 	"gihtub.com/kungze/wovenet/internal/message"
 	"gihtub.com/kungze/wovenet/internal/tunnel"
@@ -18,6 +20,7 @@ import (
 type Site struct {
 	msgClient     message.MessageClient
 	siteName      string
+	crypto        *crypto.Crypto
 	tunnelManager *tunnel.TunnelManager
 	appManager    *app.AppManager
 	remoteSites   sync.Map
@@ -205,18 +208,25 @@ func (s *Site) onNewClientConnection(remoteSite string, remoteApp string, conn i
 	}
 	defer stream.Close() //nolint:errcheck
 
+	encrRes, err := s.crypto.Encrypt([]byte(remoteApp))
+	if err != nil {
+		log.Error("failed to encrypt handshake data", "error", err)
+		return
+	}
+
 	// Prepare the handshake data, to tell remote site we want to connect to which app
-	data := []byte(remoteApp)
-	len := byte(len(data))
+	data := []byte(encrRes)
+	dataLen := make([]byte, 2)
+	binary.LittleEndian.PutUint16(dataLen, uint16(len(data)))
 	log.Info("try to write handshake data to app stream", "remoteSite", remoteSite, "remoteApp", remoteApp)
-	n, err := stream.Write(append([]byte{len}, data...))
+	n, err := stream.Write(append(dataLen, data...))
 	if err != nil {
 		log.Error("failed to write handshake data to app stream",
 			"remoteSite", remoteSite, "remoteApp", remoteApp, "error", err)
 		return
 	}
-	if n != int(len)+1 {
-		log.Error("the lenght of handshake data is valid", "expectedLen", int(len)+1, "actualLen", n)
+	if n != len(data)+2 {
+		log.Error("the lenght of handshake data is valid", "expectedLen", len(data)+2, "actualLen", n)
 		return
 	}
 
@@ -264,13 +274,23 @@ func (s *Site) onNewStream(stream tunnel.Stream) {
 		log.Error("failed to read handshake data from tunnl stream", "error", err)
 		return
 	}
-	len := int(buff[0])
-	if n < len+1 {
-		log.Error("the handshake data lenght is valid", "expectedLen", len+1, "accutalLen", n)
+	if n < 2 {
+		log.Error("failed to read handshake data, the data length is too short")
+		return
+	}
+	// Get the handshake data length
+	dataLen := binary.LittleEndian.Uint16(buff[:2])
+	if n < int(dataLen+2) {
+		log.Error("the handshake data lenght is valid", "expectedLen", dataLen+2, "accutalLen", n)
 		return
 	}
 	// Get app name from handshake data
-	appName := string(buff[1 : len+1])
+	decRes, err := s.crypto.Decrypt(string(buff[2 : dataLen+2]))
+	if err != nil {
+		log.Error("failed to decrypt handshake data")
+		return
+	}
+	appName := string(decRes)
 	log.Info("try to connect to local app", "localApp", appName)
 	conn, err := s.appManager.ConnectToLocalApp(appName)
 	if err != nil {
@@ -278,8 +298,8 @@ func (s *Site) onNewStream(stream tunnel.Stream) {
 		return
 	}
 	defer conn.Close() //nolint:errcheck
-	if n > len+1 {
-		_, err := conn.Write(buff[len+1 : n])
+	if n > int(dataLen+2) {
+		_, err := conn.Write(buff[dataLen+2 : n])
 		if err != nil {
 			log.Error("failed to write data to local app", "localApp", appName, "error", err)
 			return
@@ -322,9 +342,16 @@ func NewSite(ctx context.Context) (*Site, error) {
 		return nil, fmt.Errorf("config error: %w", err)
 	}
 
+	crypto, err := crypto.NewCrypto([]byte(config.Crypto.Key))
+	if err != nil {
+		log.Error("failed to create crypto", "error", err)
+		return nil, err
+	}
+
 	log.Info("new local site", "siteName", config.SiteName)
 	site := &Site{
 		siteName:    config.SiteName,
+		crypto:      crypto,
 		remoteSites: sync.Map{},
 		ctx:         ctx,
 	}
@@ -345,7 +372,7 @@ func NewSite(ctx context.Context) (*Site, error) {
 	}
 	site.tunnelManager = tm
 
-	msgClient, err := message.NewMessageClient(ctx, *config.MessageChannel, site.siteName)
+	msgClient, err := message.NewMessageClient(ctx, *config.MessageChannel, *config.Crypto, site.siteName)
 	if err != nil {
 		log.Error("failed to create message client", "error", err)
 		return nil, err

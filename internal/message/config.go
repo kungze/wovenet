@@ -8,9 +8,8 @@ import (
 )
 
 type Config struct {
-	Protocol  string      `mapstructure:"protocol"`
-	CryptoKey string      `mapstructure:"cryptoKey"`
-	Mqtt      *mqttConfig `mapstructure:"mqtt"`
+	Protocol string      `mapstructure:"protocol"`
+	Mqtt     *mqttConfig `mapstructure:"mqtt"`
 }
 
 func CheckAndSetDefaultConfig(config *Config) error {
@@ -19,9 +18,6 @@ func CheckAndSetDefaultConfig(config *Config) error {
 	}
 	if !slices.Contains([]string{MQTT}, strings.ToLower(config.Protocol)) {
 		return fmt.Errorf("unsupported message protocol: %s", config.Protocol)
-	}
-	if len(config.CryptoKey) != 16 {
-		return fmt.Errorf("the expected length of message cryptoKey is 16, but got lenght: %d", len(config.CryptoKey))
 	}
 	if config.Protocol == strings.ToLower(MQTT) {
 		if config.Mqtt.Topic == "" {

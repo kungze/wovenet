@@ -26,6 +26,9 @@ Create a config file named `config.yaml` with the following content:
 ```yaml
 siteName: public
 
+crypto:
+  key: "7YUw12TYd%#dse45"
+
 logger:
   level: DEBUG
   file: ""
@@ -33,7 +36,6 @@ logger:
 
 messageChannel:
   protocol: mqtt
-  cryptoKey: "7YUw12TYd%#dse45"
   mqtt:
     brokerServer: mqtt://mqtt.eclipseprojects.io:1883
     topic: "kungze/wovenet/reverse-proxy-78yted"
@@ -62,6 +64,9 @@ Create a config file named `config.yaml` with the following content:
 ```yaml
 siteName: private-01
 
+crypto:
+  key: "7YUw12TYd%#dse45"
+
 logger:
   level: DEBUG
   file: ""
@@ -69,7 +74,6 @@ logger:
 
 messageChannel:
   protocol: mqtt
-  cryptoKey: "7YUw12TYd%#dse45"
   mqtt:
     brokerServer: mqtt://mqtt.eclipseprojects.io:1883
     topic: "kungze/wovenet/reverse-proxy-78yted"
@@ -86,6 +90,9 @@ Create a config file named `config.yaml` with the following content:
 ```yaml
 siteName: private-02
 
+crypto:
+  key: "7YUw12TYd%#dse45"
+
 logger:
   level: DEBUG
   file: ""
@@ -93,7 +100,6 @@ logger:
 
 messageChannel:
   protocol: mqtt
-  cryptoKey: "7YUw12TYd%#dse45"
   mqtt:
     brokerServer: mqtt://mqtt.eclipseprojects.io:1883
     topic: "kungze/wovenet/reverse-proxy-78yted"
@@ -111,7 +117,7 @@ Run the following command on all three hosts (execution order doesn't matter):
 
 **Important Notes:**
 
-* It is strongly recommended to modify `messageChannel.cryptoKey` and `messageChannel.mqtt.topic`, and never expose these values in a public environment. If exposed, malicious users might connect to your site network and potentially launch attacks.
+* It is strongly recommended to modify `crypto.Key` and `messageChannel.mqtt.topic`, and never expose these values in a public environment. If exposed, malicious users might connect to your site network and potentially launch attacks.
 
 * The following ports on the public host must be open in your security group or firewall
 
