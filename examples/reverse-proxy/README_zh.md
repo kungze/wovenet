@@ -27,6 +27,8 @@
 siteName: public
 
 crypto:
+  # 这个 key 是用来加密敏感信息的，要求每个 wovenet 实例都要配置相同的值。
+  # 特别注意：不要使用本示例提供的值，否则可能造成敏感信息泄露。
   key: "7YUw12TYd%#dse45"
 
 logger:
@@ -38,6 +40,7 @@ messageChannel:
   protocol: mqtt
   mqtt:
     brokerServer: mqtt://mqtt.eclipseprojects.io:1883
+    # 特别注意：强烈建议修改 topic，相同 topic 的 wovenet 实例会共同组成一个 mesh 网络。
     topic: "kungze/wovenet/reverse-proxy-78yted"
 
 tunnel:
@@ -65,6 +68,8 @@ remoteApps:
 siteName: private-01
 
 crypto:
+  # 这个 key 是用来加密敏感信息的，要求每个 wovenet 实例都要配置相同的值。
+  # 特别注意：不要使用本示例提供的值，否则可能造成敏感信息泄露。
   key: "7YUw12TYd%#dse45"
 
 logger:
@@ -76,6 +81,7 @@ messageChannel:
   protocol: mqtt
   mqtt:
     brokerServer: mqtt://mqtt.eclipseprojects.io:1883
+    # 特别注意：强烈建议修改 topic，相同 topic 的 wovenet 实例会共同组成一个 mesh 网络。
     topic: "kungze/wovenet/reverse-proxy-78yted"
 
 localExposedApps:
@@ -91,6 +97,8 @@ localExposedApps:
 siteName: private-02
 
 crypto:
+  # 这个 key 是用来加密敏感信息的，要求每个 wovenet 实例都要配置相同的值。
+  # 特别注意：不要使用本示例提供的值，否则可能造成敏感信息泄露。
   key: "7YUw12TYd%#dse45"
 
 logger:
@@ -102,6 +110,7 @@ messageChannel:
   protocol: mqtt
   mqtt:
     brokerServer: mqtt://mqtt.eclipseprojects.io:1883
+    # 特别注意：强烈建议修改 topic，相同 topic 的 wovenet 实例会共同组成一个 mesh 网络。
     topic: "kungze/wovenet/reverse-proxy-78yted"
 
 localExposedApps:
