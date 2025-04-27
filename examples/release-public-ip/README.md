@@ -1,8 +1,10 @@
-# Dual-Stack Configuration with IPv4 and IPv6 to Enhance Stability and Cut Costs
+# Release Public IP from VPS to Reduce Public Cloud Costs
 
 [简体中文](./README_zh.md)
 
 ## Background
+
+Many readers may have experience deploying their own applications on public cloud VPS instances. To access services hosted on a public cloud VPS from a local machine, the VPS must have a public IP address, especially an IPv4 address.
 
 [AWS Lightsail](https://aws.amazon.com/lightsail/) is a very cost-effective VPS product. However, due to the new [pricing policy for public IPv4 addresses](https://aws.amazon.com/cn/blogs/aws/new-aws-public-ipv4-address-charge-public-ip-insights/), the cost of using Lightsail has significantly increased.
 
@@ -16,13 +18,15 @@
 
 ## Solution
 
-To reduce costs, we naturally choose the plan **without** a public IPv4 address. This article uses iperf as an example application to show how to configure `wovenet`, allowing our application to function properly even without a public IPv4 address.
+With the help of `wovenet`, we can eliminate the dependency on public IP addresses (the public cloud VPS does not need to configure a public IPv4 address).
 
-**PS:**
+**Note:**
 
-* Not assigning a public IPv4 address to an AWS Lightsail instance doesn’t mean it can’t access the IPv4 network. Lightsail will assign a private IPv4 address, which can access the IPv4 internet via NAT.
-* `iperf` is a Linux tool used to test bandwidth. Using it as a sample application also allows us to evaluate `wovenet`’s impact on bandwidth.
-* This example `wovenet` will establishes a tunnel with one IPv4 connection (from AWS to the local site) and one IPv6 connection (from the local site to AWS). The two connections are load-balanced to enhance network high availability.
+* Not configuring a public IPv4 address on AWS Lightsail does not mean it cannot access the IPv4 network. AWS will assign a private IPv4 address to the instance, which can access IPv4 networks via NAT.
+* Although the cloud VPS no longer needs a public IP, the client side must have at least one public IPv4 address or access to an IPv6 address. (If you are using home broadband, both are generally available for free upon request from your ISP; if you are using an educational network, IPv6 access is usually available by default.)
+* In this example, `wovenet` will create two tunnels: one IPv4 connection (AWS to local) and one IPv6 connection (local to AWS). Both are full-duplex, forming a load-balanced, highly available network.
+
+This article will use the iperf application (a Linux bandwidth testing tool) as an example to demonstrate how to configure `wovenet`, enabling local access to applications on a public cloud VPS even without a public IPv4 address.
 
 ### Environment Info
 
@@ -34,13 +38,7 @@ To reduce costs, we naturally choose the plan **without** a public IPv4 address.
 
 **Note:**
 
-* The AWS public IPv4 address is only used for comparison testing. In production, the AWS instance doesn’t need a public IPv4 address.
-* The local machine **must have** a public IPv4 or IPv6 address (for home broadband, you can request a public IP from your ISP).
-
-  **PS:**
-
-  * Residential IPv4 addresses may change periodically (`wovenet` will support dynamic IP detection in the near future to address this).
-  * Once `wovenet` supports NAT traversal, the local machine won't need a public IP anymore.
+* The AWS IPv4 address is only used for comparison and testing purposes. In the final setup, AWS does not need a public IPv4 address, and it will not be referenced in the `wovenet` configuration file below.
 
 ### AWS Host Configuration
 
@@ -50,6 +48,9 @@ Create a `config.yaml` file with the following content:
 siteName: aws
 
 crypto:
+  # This key is used to encrypt sensitive information.
+  # Each wovenet instance must use the same key.
+  # WARNING: Do not use the key provided in this example to avoid potential leaks.
   key: "aA6wBHTYd%#dOPr8"
 
 logger:
@@ -61,10 +62,15 @@ messageChannel:
   protocol: mqtt
   mqtt:
     brokerServer: mqtt://mqtt.eclipseprojects.io:1883
+    # WARNING: Strongly recommend modifying the topic.
+    # Wovenet instances sharing the same topic will form a mesh network.
     topic: "kungze/wovenet/dual-stack-ui78Tydwq"
 
+# If your local network cannot access IPv6, you don't need to configure this section.
 tunnel:
   localSockets:
+  # The public IPv6 address is exclusively assigned to this host and configured directly on the host NIC,
+  # so the dedicated-address mode is used here.
   - mode: dedicated-address
     transportProtocol: quic
     publicAddress: 2406:da12:35a:3d02:1f43:11a1:abf2:2900
@@ -77,7 +83,8 @@ localExposedApps:
 
 **Note:**
 
-We’re not using the AWS public IPv4 address in the above config. The IPv6 address is assigned directly to the network interface. Be sure to add a security group/firewall rule to allow UDP traffic on port 25890.
+* We don't use Public IPv4 address here.
+* You must add a firewall/security group rule on the public cloud platform to allow UDP port 25890.
 
 Start `wovenet` with:
 
@@ -102,6 +109,9 @@ Create a `config.yaml` file with the following content:
 siteName: local
 
 crypto:
+  # This key is used to encrypt sensitive information.
+  # Each wovenet instance must configure the same value.
+  # WARNING: Do not use the key provided in this example, otherwise sensitive information may be leaked.
   key: "aA6wBHTYd%#dOPr8"
 
 logger:
@@ -113,15 +123,28 @@ messageChannel:
   protocol: mqtt
   mqtt:
     brokerServer: mqtt://mqtt.eclipseprojects.io:1883
+    # WARNING: It is strongly recommended to modify the topic.
+    # Wovenet instances sharing the same topic will form a mesh network.
     topic: "kungze/wovenet/dual-stack-ui78Tydwq"
 
+# If you cannot control your local public IP address, this section is not needed
+# (but your local network must be able to access IPv6 in that case).
 tunnel:
   localSockets:
+  # Locally, the public IPv4 address is often assigned to a NAT gateway or modem.
+  # You must configure a port forwarding rule there
+  # (mapping an external public port to an internal local port)
+  # so that the wovenet instance can be directly accessed from the public network.
   - mode: port-forwarding
-    transportProtocol: quic
-    publicAddress: 36.106.107.114
     publicPort: 36092
     listenPort: 26098
+    # In some cases, especially home networks, the public IP may not be static.
+    # Here, automatic public IP detection is configured to prevent VPN tunnel failures
+    # due to public IP changes.
+    publicAddress: autoHttpDetect
+    httpDetector:
+      url: https://ipinfo.io/ip
+    transportProtocol: quic
 
 remoteApps:
 - siteName: aws
@@ -147,7 +170,7 @@ Start `wovenet` with:
 
 Verify that `wovenet` is functioning using iperf, and observe network interface traffic using `iftop`.
 
-* Test with AWS public IPv4 address:
+#### Test with AWS public IPv4 address directly:
 
 ```
 $ iperf3 -c 3.39.105.46 -P 10 -t 60
@@ -173,7 +196,7 @@ Connecting to host 3.39.105.46, port 5201
 
 As shown above, traffic only used the IPv4 address.
 
-* Test with AWS public IPv6 address:
+#### Test with AWS public IPv6 address directly:
 
 ```
 $ iperf3 -c 2406:da12:35a:3d02:1f43:11a1:abf2:2900 -P 10 -t 60
@@ -199,7 +222,7 @@ Connecting to host 2406:da12:35a:3d02:1f43:11a1:abf2:2900, port 5201
 
 As shown above, traffic only used the IPv6 address.
 
-* Test through `wovenet`:
+#### Test through `wovenet`:
 
 ```
 $ iperf3 -c 127.0.0.1 -P 10 -t 60
@@ -225,4 +248,4 @@ iperf Done.
 
 ![iftop-wovenet](./images/iftop-wovenet.png)
 
-As shown above, traffic used both IPv4 and IPv6 addresses simultaneously.
+As shown above, traffic used **both IPv4 and IPv6 addresses** simultaneously. According to the iperf test results, `wovenet` has almost no impact on bandwidth, as the two test machines are geographically close and the network conditions are good. In another example, [Improve network performance with wovenet](../network-preformance/README.md), you can see the outstanding performance of wovenet when the network transmission path is less optimal.

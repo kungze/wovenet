@@ -1,8 +1,8 @@
-# Internal Network Penetration with wovenet
+# Implement NAT traversal with wovenet
 
 [简体中文](./README_zh.md)
 
-This feature provides similar functionality to professional internal network penetration tools like [frp](https://github.com/fatedier/frp) and [ngrok](https://ngrok.com). 
+This feature provides similar functionality to professional NAT traversal tools like [frp](https://github.com/fatedier/frp) and [ngrok](https://ngrok.com). 
 
 ## Environment Information
 
@@ -27,6 +27,9 @@ Create a config file named `config.yaml` with the following content:
 siteName: public
 
 crypto:
+  # This key is used to encrypt sensitive information.
+  # Each wovenet instance must use the same key.
+  # WARNING: Do not use the key provided in this example to avoid potential leaks.
   key: "7YUw12TYd%#dse45"
 
 logger:
@@ -38,6 +41,8 @@ messageChannel:
   protocol: mqtt
   mqtt:
     brokerServer: mqtt://mqtt.eclipseprojects.io:1883
+    # WARNING: Strongly recommend modifying the topic.
+    # Wovenet instances sharing the same topic will form a mesh network.
     topic: "kungze/wovenet/reverse-proxy-78yted"
 
 tunnel:
@@ -65,6 +70,9 @@ Create a config file named `config.yaml` with the following content:
 siteName: private-01
 
 crypto:
+  # This key is used to encrypt sensitive information.
+  # Each wovenet instance must use the same key.
+  # WARNING: Do not use the key provided in this example to avoid potential leaks.
   key: "7YUw12TYd%#dse45"
 
 logger:
@@ -76,6 +84,8 @@ messageChannel:
   protocol: mqtt
   mqtt:
     brokerServer: mqtt://mqtt.eclipseprojects.io:1883
+    # WARNING: Strongly recommend modifying the topic.
+    # Wovenet instances sharing the same topic will form a mesh network.
     topic: "kungze/wovenet/reverse-proxy-78yted"
 
 localExposedApps:
@@ -91,6 +101,9 @@ Create a config file named `config.yaml` with the following content:
 siteName: private-02
 
 crypto:
+  # This key is used to encrypt sensitive information.
+  # Each wovenet instance must use the same key.
+  # WARNING: Do not use the key provided in this example to avoid potential leaks.
   key: "7YUw12TYd%#dse45"
 
 logger:
@@ -102,6 +115,8 @@ messageChannel:
   protocol: mqtt
   mqtt:
     brokerServer: mqtt://mqtt.eclipseprojects.io:1883
+    # WARNING: Strongly recommend modifying the topic.
+    # Wovenet instances sharing the same topic will form a mesh network.
     topic: "kungze/wovenet/reverse-proxy-78yted"
 
 localExposedApps:
