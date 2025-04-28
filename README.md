@@ -1,5 +1,12 @@
 # wovenet
 
+[![Release][1]][2] [![MIT licensed][3]][4]
+
+[1]: https://img.shields.io/github/v/release/kungze/wovenet?color=orange
+[2]: https://github.com/kungze/wovenet/releases/latest
+[3]: https://img.shields.io/github/license/kungze/wovenet
+[4]: LICENSE
+
 [简体中文](./README_zh.md)
 
 An application-layer VPN that connects separate private networks, builds a mesh network, and improves network stability, security, and traffic performance.
@@ -26,6 +33,8 @@ If you encounter unclear configuration options while walking through these examp
 * [Improve network performance with wovenet](./examples/network-preformance/README.md)
 * [An effective solution for systems that involve a large number of dynamic ports (such as: VDI Platform)](./examples/multiple-port/README.md)
 * [Converting Unix Socket applications to TCP Socket applications](./examples/convert-unix-to-tcp/README.md)
+
+Before running these examples, you need to download the latest version of `wovenet` from the [release](https://github.com/kungze/wovenet/releases) page and extract it.
 
 ## TODO LIST
 

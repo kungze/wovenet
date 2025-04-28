@@ -1,5 +1,12 @@
 # wovenet
 
+[![Release][1]][2] [![MIT licensed][3]][4]
+
+[1]: https://img.shields.io/github/v/release/kungze/wovenet?color=orange
+[2]: https://github.com/kungze/wovenet/releases/latest
+[3]: https://img.shields.io/github/license/kungze/wovenet
+[4]: LICENSE
+
 [English](./README.md)
 
 应用层网络 VPN，它可以连接不同的私有局域网， 构建多站点的 mesh 网络，提升网络带宽，增强网络稳定性，安全性。
@@ -25,6 +32,7 @@
 * [借助 wovenet 应对存在大量动态变化的端口的系统（如：VDI 系统）](./examples/multiple-port/README_zh.md)
 * [unix socket 应用转为 tcp socket 应用](./examples/convert-unix-to-tcp/README_zh.md)
 
+在运行这些示例之前，需要先从 [release](https://github.com/kungze/wovenet/releases) 下载最新版本 `wovenet`，并解压。
 
 ## 后续功能规划
 
