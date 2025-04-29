@@ -46,7 +46,7 @@ func (s *Site) Start(ctx context.Context) error {
 		return nil
 	}
 
-	// Get the local listenr sockets for others sites to connect to establish tunnels
+	// Get the local listener sockets for others sites to connect to establish tunnels
 	sockets, err := s.tunnelManager.GetLocalSocketInfos()
 	if err != nil {
 		log.Error("failed to get tunnel local sockets", "error", err)
@@ -207,7 +207,7 @@ func (s *Site) onNewClientConnection(remoteSite string, appName string, appSocke
 	defer conn.Close() //nolint:errcheck
 	log := logger.GetDefault()
 
-	// Open a new strem in the tunnel which link the local site and the remote site
+	// Open a new stream in the tunnel which link the local site and the remote site
 	// which the remote app is located in
 	log.Info("try to open a new stream in tunnel to connect to remote app", "remoteSite", remoteSite, "remoteApp", appName)
 	stream, err := s.tunnelManager.OpenNewStream(s.ctx, remoteSite)
@@ -241,7 +241,7 @@ func (s *Site) onNewClientConnection(remoteSite string, appName string, appSocke
 		return
 	}
 	if n != len(data)+2 {
-		log.Error("the lenght of handshake data is valid", "expectedLen", len(data)+2, "actualLen", n)
+		log.Error("the length of handshake data is valid", "expectedLen", len(data)+2, "actualLen", n)
 		return
 	}
 
@@ -286,7 +286,7 @@ func (s *Site) onNewStream(stream tunnel.Stream) {
 	buff := make([]byte, 1024)
 	n, err := stream.Read(buff)
 	if err != nil {
-		log.Error("failed to read handshake data from tunnl stream", "error", err)
+		log.Error("failed to read handshake data from tunnel stream", "error", err)
 		return
 	}
 	if n < 2 {
@@ -296,7 +296,7 @@ func (s *Site) onNewStream(stream tunnel.Stream) {
 	// Get the handshake data length
 	dataLen := binary.LittleEndian.Uint16(buff[:2])
 	if n < int(dataLen+2) {
-		log.Error("the handshake data lenght is valid", "expectedLen", dataLen+2, "accutalLen", n)
+		log.Error("the handshake data length is valid", "expectedLen", dataLen+2, "actualLen", n)
 		return
 	}
 	// Get app name from handshake data
@@ -358,7 +358,7 @@ func NewSite(ctx context.Context) (*Site, error) {
 	var config Config
 	err := viper.Unmarshal(&config)
 	if err != nil {
-		log.Error("failed to unmarshals the config into a struct", "error", err)
+		log.Error("failed to unmarshal the config into a struct", "error", err)
 		return nil, err
 	}
 

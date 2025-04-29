@@ -18,13 +18,13 @@ logger:
   file: ""
   format: json
 
-# The message channel used to excanage informations between different sites
+# The message channel used to exchange information between different sites
 messageChannel:
   # Currently, we only support mqtt protocol
   # 目前，我们只支持 mqtt 协议
   protocol: mqtt
   mqtt:
-    # mqtt brokcer server
+    # mqtt broker server
     # mqtt 服务地址
     brokerServer: mqtt://mqtt.eclipseprojects.io:1883
     # NOTE: This is important, you are strongly suggested to change this(don't use the default value directly).
@@ -43,7 +43,7 @@ tunnel:
   # local site. You can config multiple sockets, the remote peer sites
   # will try to establish multiple tunnel connections. These connections
   # will constitute load-balancing, improve the tunnel's stability and 
-  # increate the tunnel's traffic
+  # increase the tunnel's traffic
   # 本地站点会监听在这些套接字上，远端对等站点会通过尝试连接这些套接字并与本地
   # 站点建立隧道。可以配置多个套接字，远程站点就会尝试建立多个连接，这些连接
   # 会构成负载均衡，可以增强隧道的稳定性，增大隧道带宽
@@ -136,7 +136,7 @@ localExposedApps:
 # Specify the local site can access which remote applications of remote sites
 # All these three options are required.
 # wovenet will startup a listener for each remote apps, By these listeners' sockets,
-# the local site's exteral client will access particualar remote application
+# the local site's external client will access particular remote application
 # 指定本端可以访问哪些远端站点的应用
 # 这三个参数都是必须设置的
 # wovenet 会为每个 socket 启动一个监听器，通过访问这个监听器的套接字，本地的用户可以访问到

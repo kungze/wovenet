@@ -22,7 +22,7 @@ type RemoteSiteDisconnectedCallback func(remoteSite string)
 // It is used to notify the local site that the remote site is reachable.
 type RemoteSiteConnectedCallback func(ctx context.Context, remoteSite string)
 
-// RequestNewRemoteSocketInfo is called whan a remote site's socket is disconnected
+// RequestNewRemoteSocketInfo is called when a remote site's socket is disconnected
 // and the remote socket's public address is dynamic. This function is used to
 // request a new public address for the remote site.
 type RequestNewRemoteSocketInfo func(remoteSite string, socketId string) error

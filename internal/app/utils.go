@@ -32,7 +32,7 @@ func isValidSocket(socket string) error {
 		}
 		return nil
 	default:
-		return fmt.Errorf("unsupported protoco: %s, supported values: tcp and unix", s[0])
+		return fmt.Errorf("unsupported protocol: %s, supported values: tcp and unix", s[0])
 	}
 }
 

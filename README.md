@@ -20,7 +20,7 @@ Compared to these traditional VPNs, `wovenet` has two major advantages:
 * `wovenet` tunnels transmit application-layer data directly, avoiding extra packet headers, resulting in higher bandwidth utilization;
 * `wovenet` enables application-level access control, allowing fine-grained control over which applications at a site can be accessed by other sites.
 
-`wovenet` enables users to access services located at remote sites (typically within a LAN) through local socket connections. As illustrated above, in LAN1 there is an application, app1, which under normal circumstances can only be accessed by users within LAN1. However, users in LAN3 also want to access app1. The solution is simple: by deploying `wovenet` in both LANs with proper configuration, wovenet in LAN3 will open a local socket port. Users in LAN3 can then access app1 in LAN1 through the socket port provided by their local `wovenet`. instance.
+`wovenet` enables users to access services located at remote sites (typically within a LAN) through local socket connections. As illustrated above, in LAN1 there is an application, app1, which under normal circumstances can only be accessed by users within LAN1. However, users in LAN3 also want to access app1. The solution is simple: by deploying `wovenet` in both LANs with proper configuration, `wovenet` in LAN3 will open a local socket port. Users in LAN3 can then access app1 in LAN1 through the socket port provided by their local `wovenet`. instance.
 
 ## Examples
 

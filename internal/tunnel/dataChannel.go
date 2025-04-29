@@ -8,7 +8,7 @@ import (
 	"github.com/google/uuid"
 )
 
-// dataChannle wraps different connection types(such as QUIC connection)
+// dataChannel wraps different connection types(such as QUIC connection)
 type dataChannel struct {
 	Connection
 	id                string
@@ -48,7 +48,7 @@ func (dc *dataChannel) Destroy() {
 }
 
 // acceptStreamLoop is used to accept stream from remote site.
-// the stream used to trasnfer data between remote site's external
+// the stream used to transfer data between remote site's external
 // client and local exposed app.
 func (dc *dataChannel) acceptStreamLoop() {
 	dc.active = true

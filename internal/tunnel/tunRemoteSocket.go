@@ -44,9 +44,9 @@ func (s *tunRemoteSocket) OpenDataChannel(ctx context.Context) error {
 	case QUIC:
 		dialer = newQuicDialer(s.SocketInfo)
 	case SCTP:
-		return fmt.Errorf("unsuported protocol: %s", SCTP)
+		return fmt.Errorf("unsupported protocol: %s", SCTP)
 	default:
-		return fmt.Errorf("unsuported protocol: %s", s.Protocol)
+		return fmt.Errorf("unsupported protocol: %s", s.Protocol)
 	}
 
 	conn, err := dialer.Dial(ctx)
@@ -74,7 +74,7 @@ func (s *tunRemoteSocket) OpenDataChannel(ctx context.Context) error {
 	if n != int(len)+1 {
 		stream.Close() //nolint:errcheck
 		conn.Close()
-		log.Error("the lenght of data write to control stream is valid", "remoteSite", s.remoteSite)
+		log.Error("the length of data write to control stream is valid", "remoteSite", s.remoteSite)
 		return fmt.Errorf("write data length is not valid")
 	}
 	s.dataChannel = newDataChannel(ctx, conn, s.remoteSite, s.streamCallback, s.onConnectionError, s.dataChannelDestroyCallback)

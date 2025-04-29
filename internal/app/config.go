@@ -80,11 +80,11 @@ func CheckRemoteAddConfig(configs []*RemoteAppConfig) error {
 			return fmt.Errorf("the appName: '%s' is too long, the max length is 255", cfg.AppName)
 		}
 		if err := isValidSocket(cfg.LocalSocket); err != nil {
-			return fmt.Errorf("the localSocket: '%s' of remot app: '%s' is invalid, %w", cfg.LocalSocket, cfg.AppName, err)
+			return fmt.Errorf("the localSocket: '%s' of remote app: '%s' is invalid, %w", cfg.LocalSocket, cfg.AppName, err)
 		}
 		if cfg.AppSocket != "" {
 			if err := isValidSocket(cfg.AppSocket); err != nil {
-				return fmt.Errorf("the appSocket: '%s' of remot app: '%s' is invalid, %w", cfg.AppSocket, cfg.AppName, err)
+				return fmt.Errorf("the appSocket: '%s' of remote app: '%s' is invalid, %w", cfg.AppSocket, cfg.AppName, err)
 			}
 		}
 	}

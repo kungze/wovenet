@@ -27,7 +27,7 @@
 * 本示例 `wovenet` 会建立的隧道有一个 IPv4 连接（AWS 连向本地），一个 IPv6 连接（本地连向 AWS），两个连接都是全双工的，它们组成了一个负载均衡（增强了网络的高可用性）
 
 
-本文将以 iperf 应用为示例（iperf 是一款用于测试带宽的 Linux 工具），展示如何配置 `wovenet`，即使 VPS 没有公网 IPv4 地址，在本地也能正常访问公网 VPS 上的应用。
+本文将以 `iperf` 应用为示例（`iperf` 是一款用于测试带宽的 Linux 工具），展示如何配置 `wovenet`，即使 VPS 没有公网 IPv4 地址，在本地也能正常访问公网 VPS 上的应用。
 
 ### 环境信息
 
@@ -91,7 +91,7 @@ localExposedApps:
 ./wovenet run --config ./config.yaml
 ```
 
-执行下面命令启动 iperf server:
+执行下面命令启动 `iperf` server:
 
 ```
 $ iperf3 -s

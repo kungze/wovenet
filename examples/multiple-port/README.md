@@ -85,7 +85,7 @@ localExposedApps:
 nc -l 5900
 ```
 
-* On 10.0.2.129 statr two `nc` services:
+* On 10.0.2.129 start two `nc` services:
 
 `nc` service one:
 

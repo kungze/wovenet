@@ -123,7 +123,7 @@ func (mc *mqttClient) onPublishReceived(r paho.PublishReceived) (bool, error) {
 
 	payload := &Payload{}
 	if err := json.Unmarshal(rawPayload, payload); err != nil {
-		log.Error("failed to umarshal message", "error", err)
+		log.Error("failed to unmarshal message", "error", err)
 		return false, err
 	}
 	if payload.ClientId == mc.clientId {
@@ -140,7 +140,7 @@ func (mc *mqttClient) onPublishReceived(r paho.PublishReceived) (bool, error) {
 		log.Error("can not handle message payload", "messageKind", payload.Kind, "error", err)
 		return false, err
 	}
-	// If resp is not nil, means that we need to responed to remote site
+	// If resp is not nil, means that we need to respond to remote site
 	if resp != nil {
 		err := mc.publishMassage(context.Background(), fmt.Sprintf(specificSiteTopic, mc.topic, payload.ClientId), kind, resp)
 		if err != nil {
@@ -178,7 +178,7 @@ func newMqttClient(ctx context.Context, mqttConfig mqttConfig, cryptoConfig cryp
 	}
 	u, err := url.Parse(mqttConfig.BrokerServer)
 	if err != nil {
-		log.Error("failed to parset brroker server url", "error", err)
+		log.Error("failed to parse broker server url", "error", err)
 		return nil, err
 	}
 	subscribes := []paho.SubscribeOptions{

@@ -89,7 +89,7 @@ func (tm *TunnelManager) tunnelBroken(remoteSite string) tunnelBrokenCallback {
 func (tm *TunnelManager) OpenNewStream(ctx context.Context, siteName string) (io.ReadWriteCloser, error) {
 	tun, ok := tm.tunnels[siteName]
 	if !ok {
-		return nil, fmt.Errorf("can not found tunnl that connect to remote site: %s", siteName)
+		return nil, fmt.Errorf("can not found tunnel that connect to remote site: %s", siteName)
 	}
 	return tun.OpenStream(ctx)
 }

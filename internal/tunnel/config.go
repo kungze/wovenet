@@ -15,7 +15,7 @@ type SocketConfig struct {
 	Mode              SocketMode        `mapstructure:"mode"`
 	TransportProtocol TransportProtocol `mapstructure:"transportProtocol"`
 	PublicAddress     string            `mapstructure:"publicAddress"`
-	PublicePort       uint16            `mapstructure:"publicPort"`
+	PublicPort        uint16            `mapstructure:"publicPort"`
 	ListenAddress     string            `mapstructure:"listenAddress"`
 	ListenPort        uint16            `mapstructure:"listenPort"`
 	HTTPDetector      *HTTPDetector     `mapstructure:"httpDetector"`
@@ -42,18 +42,18 @@ func CheckAndSetDefaultConfig(config *Config) error {
 			} else if socket.PublicAddress == "" {
 				socket.PublicAddress = socket.ListenAddress
 			}
-			if socket.ListenPort == 0 && socket.PublicePort == 0 {
+			if socket.ListenPort == 0 && socket.PublicPort == 0 {
 				return fmt.Errorf("the 'publicPort' or 'listenPort' must be set when the tunnel socket mode set as: %s", DedicatedAddress)
-			} else if socket.PublicePort == 0 {
-				socket.PublicePort = socket.ListenPort
+			} else if socket.PublicPort == 0 {
+				socket.PublicPort = socket.ListenPort
 			} else if socket.ListenPort == 0 {
-				socket.ListenPort = socket.PublicePort
+				socket.ListenPort = socket.PublicPort
 			}
-			if socket.ListenPort != socket.PublicePort {
+			if socket.ListenPort != socket.PublicPort {
 				return fmt.Errorf("the 'publicPort' or 'listenPort' must be equal when the tunnel socket mode set as: %s", DedicatedAddress)
 			}
 		}
-		if socket.Mode == PortForwarding && (socket.PublicAddress == "" || socket.PublicePort == 0 || socket.ListenPort == 0) {
+		if socket.Mode == PortForwarding && (socket.PublicAddress == "" || socket.PublicPort == 0 || socket.ListenPort == 0) {
 			return fmt.Errorf("the 'publicAddress' and 'publicPort' and 'listenPort' must be set together when the tunnel socket mode set as: %s", PortForwarding)
 		}
 		switch socket.PublicAddress {
