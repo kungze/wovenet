@@ -7,7 +7,7 @@ import (
 	"math/rand"
 	"sync"
 
-	"gihtub.com/kungze/wovenet/internal/logger"
+	"github.com/kungze/wovenet/internal/logger"
 )
 
 type tunnelBrokenCallback func()

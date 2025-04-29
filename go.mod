@@ -1,4 +1,4 @@
-module gihtub.com/kungze/wovenet
+module github.com/kungze/wovenet
 
 go 1.24.1
 

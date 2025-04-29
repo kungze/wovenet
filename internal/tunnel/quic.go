@@ -13,7 +13,7 @@ import (
 	"net/netip"
 	"time"
 
-	"gihtub.com/kungze/wovenet/internal/logger"
+	"github.com/kungze/wovenet/internal/logger"
 	"github.com/quic-go/quic-go"
 )
 

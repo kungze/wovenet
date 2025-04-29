@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"slices"
 
-	"gihtub.com/kungze/wovenet/internal/logger"
 	"github.com/google/uuid"
+	"github.com/kungze/wovenet/internal/logger"
 )
 
 var supportedDetectMethod = []string{AutoHTTPDetect, AutoSTUNDetect}

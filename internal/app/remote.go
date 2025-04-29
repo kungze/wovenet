@@ -10,7 +10,7 @@ import (
 	"strings"
 	"sync/atomic"
 
-	"gihtub.com/kungze/wovenet/internal/logger"
+	"github.com/kungze/wovenet/internal/logger"
 )
 
 type ClientConnectedCallback func(remoteSite string, appName string, appSocket string, conn io.ReadWriteCloser)

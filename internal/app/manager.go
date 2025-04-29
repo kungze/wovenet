@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 
-	"gihtub.com/kungze/wovenet/internal/logger"
+	"github.com/kungze/wovenet/internal/logger"
 )
 
 type AppManager struct {

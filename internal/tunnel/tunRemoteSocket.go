@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"gihtub.com/kungze/wovenet/internal/logger"
+	"github.com/kungze/wovenet/internal/logger"
 )
 
 type tunRemoteSocket struct {

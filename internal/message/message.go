@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"gihtub.com/kungze/wovenet/internal/crypto"
-	"gihtub.com/kungze/wovenet/internal/logger"
+	"github.com/kungze/wovenet/internal/crypto"
+	"github.com/kungze/wovenet/internal/logger"
 )
 
 type Payload struct {

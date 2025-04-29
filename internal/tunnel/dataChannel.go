@@ -4,8 +4,8 @@ import (
 	"context"
 	"sync"
 
-	"gihtub.com/kungze/wovenet/internal/logger"
 	"github.com/google/uuid"
+	"github.com/kungze/wovenet/internal/logger"
 )
 
 // dataChannel wraps different connection types(such as QUIC connection)
