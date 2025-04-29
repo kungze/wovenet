@@ -1,8 +1,8 @@
 package site
 
 import (
-	"gihtub.com/kungze/wovenet/internal/app"
-	"gihtub.com/kungze/wovenet/internal/tunnel"
+	"github.com/kungze/wovenet/internal/app"
+	"github.com/kungze/wovenet/internal/tunnel"
 )
 
 type siteInfo struct {

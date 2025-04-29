@@ -9,12 +9,12 @@ import (
 	"sync"
 	"time"
 
-	"gihtub.com/kungze/wovenet/internal/app"
-	"gihtub.com/kungze/wovenet/internal/crypto"
-	"gihtub.com/kungze/wovenet/internal/logger"
-	"gihtub.com/kungze/wovenet/internal/message"
-	"gihtub.com/kungze/wovenet/internal/tunnel"
 	"github.com/go-viper/mapstructure/v2"
+	"github.com/kungze/wovenet/internal/app"
+	"github.com/kungze/wovenet/internal/crypto"
+	"github.com/kungze/wovenet/internal/logger"
+	"github.com/kungze/wovenet/internal/message"
+	"github.com/kungze/wovenet/internal/tunnel"
 	"github.com/spf13/viper"
 )
 

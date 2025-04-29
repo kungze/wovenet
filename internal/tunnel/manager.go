@@ -6,7 +6,7 @@ import (
 	"io"
 	"sync"
 
-	"gihtub.com/kungze/wovenet/internal/logger"
+	"github.com/kungze/wovenet/internal/logger"
 )
 
 type TunnelManager struct {

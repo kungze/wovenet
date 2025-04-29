@@ -7,8 +7,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	"gihtub.com/kungze/wovenet/internal/logger"
-	"gihtub.com/kungze/wovenet/internal/site"
+	"github.com/kungze/wovenet/internal/logger"
+	"github.com/kungze/wovenet/internal/site"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )

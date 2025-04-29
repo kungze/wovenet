@@ -3,10 +3,10 @@ package site
 import (
 	"fmt"
 
-	"gihtub.com/kungze/wovenet/internal/app"
-	"gihtub.com/kungze/wovenet/internal/crypto"
-	"gihtub.com/kungze/wovenet/internal/message"
-	"gihtub.com/kungze/wovenet/internal/tunnel"
+	"github.com/kungze/wovenet/internal/app"
+	"github.com/kungze/wovenet/internal/crypto"
+	"github.com/kungze/wovenet/internal/message"
+	"github.com/kungze/wovenet/internal/tunnel"
 )
 
 type Config struct {
