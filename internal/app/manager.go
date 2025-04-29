@@ -62,9 +62,9 @@ func (am *AppManager) ProcessRemoteSiteGone(remoteSite string) {
 	}
 }
 
-func NewAppManager(ctx context.Context, localexposedApps []*LocalExposedAppConfig, remoteApps []*RemoteAppConfig) (*AppManager, error) {
+func NewAppManager(ctx context.Context, localExposedApps []*LocalExposedAppConfig, remoteApps []*RemoteAppConfig) (*AppManager, error) {
 	am := AppManager{localExposedApps: map[string]*localApp{}}
-	for _, exposedApp := range localexposedApps {
+	for _, exposedApp := range localExposedApps {
 		a := newLocalApp(*exposedApp)
 		am.localExposedApps[exposedApp.AppName] = a
 	}

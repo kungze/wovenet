@@ -24,7 +24,7 @@ func CheckAndSetDefaultConfig(config *Config) error {
 		return fmt.Errorf("the siteName must be set")
 	}
 	if len(config.SiteName) > 255 {
-		return fmt.Errorf("the siteName is too long, the lenght must less or equal 255")
+		return fmt.Errorf("the siteName is too long, the length must less or equal 255")
 	}
 
 	if err := crypto.CheckConfig(config.Crypto); err != nil {

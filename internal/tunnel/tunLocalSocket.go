@@ -130,12 +130,12 @@ func (s *tunLocalSocket) GetSocketInfo() (*SocketInfo, error) {
 			return nil, err
 		}
 		address = ipaddr
-		port = s.config.PublicePort
+		port = s.config.PublicPort
 	case AutoSTUNDetect:
 		return nil, fmt.Errorf("not implement")
 	default:
 		address = s.config.PublicAddress
-		port = s.config.PublicePort
+		port = s.config.PublicPort
 	}
 	return &SocketInfo{
 		Address:              address,

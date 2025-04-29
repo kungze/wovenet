@@ -26,7 +26,7 @@ With the help of `wovenet`, we can eliminate the dependency on public IP address
 * Although the cloud VPS no longer needs a public IP, the client side must have at least one public IPv4 address or access to an IPv6 address. (If you are using home broadband, both are generally available for free upon request from your ISP; if you are using an educational network, IPv6 access is usually available by default.)
 * In this example, `wovenet` will create two tunnels: one IPv4 connection (AWS to local) and one IPv6 connection (local to AWS). Both are full-duplex, forming a load-balanced, highly available network.
 
-This article will use the iperf application (a Linux bandwidth testing tool) as an example to demonstrate how to configure `wovenet`, enabling local access to applications on a public cloud VPS even without a public IPv4 address.
+This article will use the `iperf` application (a Linux bandwidth testing tool) as an example to demonstrate how to configure `wovenet`, enabling local access to applications on a public cloud VPS even without a public IPv4 address.
 
 ### Environment Info
 
@@ -168,7 +168,7 @@ Start `wovenet` with:
 
 ### Validation Results
 
-Verify that `wovenet` is functioning using iperf, and observe network interface traffic using `iftop`.
+Verify that `wovenet` is functioning using `iperf`, and observe network interface traffic using `iftop`.
 
 #### Test with AWS public IPv4 address directly:
 

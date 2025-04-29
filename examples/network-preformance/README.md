@@ -12,7 +12,7 @@ The `wovenet` tunnel transmission protocol uses [QUIC](https://en.wikipedia.org/
 
 For this test, I prepared two machines: one located in Ohio, USA, with a public IP address of 18.119.29.39, and the other located in Tianjin, China, without a public IP. The two locations are geographically very far apart.
 
-* The machine in Ohio started an iperf server:
+* The machine in Ohio started an `iperf` server:
 
 ```
 $ iperf3 -s
@@ -21,7 +21,7 @@ Server listening on 5201 (test #1)
 -----------------------------------------------------------
 ```
 
-* The machine in Tianjin directly connected to the Ohio machine’s public IP using iperf for testing. Here are the results:
+* The machine in Tianjin directly connected to the Ohio machine’s public IP using `iperf` for testing. Here are the results:
 
 ```
 $ iperf3 -c 18.119.29.39

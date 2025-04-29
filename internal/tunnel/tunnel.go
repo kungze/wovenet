@@ -22,19 +22,19 @@ type tunnel struct {
 func (t *tunnel) OpenStream(ctx context.Context) (io.ReadWriteCloser, error) {
 	t.mux.RLock()
 	defer t.mux.RUnlock()
-	channnels := []*dataChannel{}
+	channels := []*dataChannel{}
 	for _, channel := range t.slaves {
 		if channel.IsActive() {
-			channnels = append(channnels, channel)
+			channels = append(channels, channel)
 		}
 	}
-	if len(channnels) == 0 {
+	if len(channels) == 0 {
 		return nil, fmt.Errorf("no available data channel")
 	}
-	if len(channnels) > 1 {
-		return channnels[rand.Intn(len(t.slaves)-1)].OpenStream(ctx)
+	if len(channels) > 1 {
+		return channels[rand.Intn(len(t.slaves)-1)].OpenStream(ctx)
 	} else {
-		return channnels[0].OpenStream(ctx)
+		return channels[0].OpenStream(ctx)
 	}
 }
 
