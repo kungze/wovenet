@@ -47,7 +47,6 @@ func CheckLocalExposedAppConfig(configs []*LocalExposedAppConfig) error {
 			if err != nil {
 				return fmt.Errorf("app '%s' has invalid appSocket: %s, %w", cfg.AppName, cfg.AppSocket, err)
 			}
-			return nil
 		case RANGE:
 			if len(cfg.PortRange) == 0 {
 				return fmt.Errorf("app '%s' has mode 'range' but missing portRange", cfg.AppName)
