@@ -248,6 +248,12 @@ func (s *Site) onNewClientConnection(remoteSite string, appName string, appSocke
 	wg := sync.WaitGroup{}
 	wg.Add(2)
 	go func() {
+		defer func() {
+			log.Warn("the coroutine which copy data from tunnel stream to local client exit",
+				"remoteSite", remoteSite, "remoteApp", appName)
+			_ = conn.Close()
+			_ = stream.Close()
+		}()
 		log.Info("start to copy data from tunnel stream to local client",
 			"remoteSite", remoteSite, "remoteApp", appName)
 		defer wg.Done()
@@ -256,10 +262,14 @@ func (s *Site) onNewClientConnection(remoteSite string, appName string, appSocke
 			log.Error("failed to copy data from tunnel stream to local client",
 				"remoteSite", remoteSite, "remoteApp", appName, "error", err)
 		}
-		log.Warn("the coroutine which copy data from tunnel stream to local client exit",
-			"remoteSite", remoteSite, "remoteApp", appName)
 	}()
 	go func() {
+		defer func() {
+			log.Warn("the coroutine which copy data from local client to tunnel stream exit",
+				"remoteSite", remoteSite, "remoteApp", appName)
+			_ = conn.Close()
+			_ = stream.Close()
+		}()
 		log.Info("start to copy data from local client to tunnel stream",
 			"remoteSite", remoteSite, "remoteApp", appName)
 		defer wg.Done()
@@ -268,8 +278,6 @@ func (s *Site) onNewClientConnection(remoteSite string, appName string, appSocke
 			log.Error("failed to copy data from local client to tunnel stream",
 				"remoteSite", remoteSite, "remoteApp", appName, "error", err)
 		}
-		log.Warn("the coroutine which copy data from local client to tunnel stream exit",
-			"remoteSite", remoteSite, "remoteApp", appName)
 	}()
 	wg.Wait()
 }
@@ -333,22 +341,30 @@ func (s *Site) onNewStream(stream tunnel.Stream) {
 	wg := sync.WaitGroup{}
 	wg.Add(2)
 	go func() {
+		defer func() {
+			log.Warn("the coroutine which copy data from tunnel stream to local app exit", "localApp", appInfo.Name)
+			_ = conn.Close()
+			_ = stream.Close()
+		}()
 		log.Info("start to copy data from tunnel stream to local app", "localApp", appInfo.Name)
 		defer wg.Done()
 		_, err := io.Copy(conn, stream)
 		if err != nil {
 			log.Error("failed to copy data from tunnel stream to local app", "localApp", appInfo.Name)
 		}
-		log.Warn("the coroutine which copy data from tunnel stream to local app exit", "localApp", appInfo.Name)
 	}()
 	go func() {
+		defer func() {
+			log.Warn("the coroutine which copy data from local app to tunnel stream exit", "localApp", appInfo.Name)
+			_ = conn.Close()
+			_ = stream.Close()
+		}()
 		log.Info("start to copy data from local app to tunnel stream", "localApp", appInfo.Name)
 		defer wg.Done()
 		_, err := io.Copy(stream, conn)
 		if err != nil {
 			log.Error("failed to copy data from local app to tunnel stream", "localApp", appInfo.Name)
 		}
-		log.Warn("the coroutine which copy data from local app to tunnel stream exit", "localApp", appInfo.Name)
 	}()
 	wg.Wait()
 }
