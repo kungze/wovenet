@@ -1,10 +1,10 @@
-# The site name must be unique globally. It's the identify of every sites. In other words,
-# echo site should have a different siteName
+# The site name must be unique globally. It's the identifier of each site. In other words,
+# each site should have a different siteName
 # siteName 必须是全局唯一的，它是每个站定的唯一标识，每个 site 应当有不同的 siteName
 siteName: site01
 
-# Use to encrypt message payload and handshake data
-# 用于加密消息负载和握手数据
+# Use to encrypt message payload (transfer via messageChannel) and handshake data (transfer via dataChannel)
+# 用于加密消息负载（通过 messageChannel 传输）和握手数据（通过 dataChannel 传输）
 crypto:
   # The min length of the key is 8 bytes, and the max length is 32 bytes.
   # It's strongly recommended to change the default value and set a high strength key
@@ -15,6 +15,8 @@ crypto:
 logger:
   level: DEBUG
   # /var/log/wovenet.log
+  # If file is left empty, logs will be output to stdout (typically the screen).
+  # 如果 file 保持为空，日志将会通过 stdout（一般是屏幕） 输出
   file: ""
   format: json
 
@@ -28,7 +30,7 @@ messageChannel:
     # mqtt 服务地址
     brokerServer: mqtt://mqtt.eclipseprojects.io:1883
     # NOTE: This is important, you are strongly suggested to change this(don't use the default value directly).
-    # The sites which have some topic will try to establish tunnel connections each other
+    # Sites with the same topic will try to establish tunnel connections with each other.
     # In other words, the same topic sites will join the same network
     # **If you don't change this value**, you may connect to other sites network, which may cause
     # information leak
@@ -40,11 +42,11 @@ messageChannel:
 tunnel:
   # the local site will listen on these sockets, the remote peer sites
   # will try to connect to these sockets and establish tunnels with the
-  # local site. You can config multiple sockets, the remote peer sites
+  # local site. You can configure multiple sockets, the remote peer sites
   # will try to establish multiple tunnel connections. These connections
   # will constitute load-balancing, improve the tunnel's stability and 
   # increase the tunnel's traffic
-  # 本地站点会监听在这些套接字上，远端对等站点会通过尝试连接这些套接字并与本地
+  # 本地站点会监听在这些套接字上，远端对等站点会尝试连接这些套接字并与本地
   # 站点建立隧道。可以配置多个套接字，远程站点就会尝试建立多个连接，这些连接
   # 会构成负载均衡，可以增强隧道的稳定性，增大隧道带宽
   localSockets:
@@ -53,11 +55,11 @@ tunnel:
   # 1. The dedicated public address set on the local site machine's network interface
   # directly. In this case, You only need to set either publicAddress or
   # listenAddress
-  # 2. The dedicated public address bond to the local machine by floating ip
+  # 2. The dedicated public address bound to the local machine by floating ip
   # or EIP(elastic ip). In this case, publicAddress must be set, listenAddress
   # can be remain empty.
   # No matter which case, the publicPort and listenPort must remain same or only
-  # set one of them (the another will auto set).
+  # set one of them (the another will be set automatically).
   # For transportProtocol, wovenet only support quic currently
   # 当 socket 的 mode 设置为 dedicated-address 时，意味着这个 socket 有一个专有的
   # 公网 IP。可以分为以下两种场景
@@ -72,7 +74,7 @@ tunnel:
     publicAddress: 240e:362:a0e:640c:d620:ff:feb3:a916
     listenAddress: 240e:362:a0e:640c:d620:ff:feb3:a916
     listenPort: 54234
-  # port-forwarding the local machine don't has dedicated public address.
+  # port-forwarding the local machine doesn't has dedicated public address.
   # But the NAT gateway of the local site machine has a dedicated public address, and
   # you can config port mapping on NAT gateway for the local machine on the NAT gateway.
   # In this case, publicAddress，publicPort and listenPort are required. And they must refer
