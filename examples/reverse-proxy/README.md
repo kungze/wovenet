@@ -1,8 +1,8 @@
-# Implement NAT traversal with wovenet
+# Implement NAT Reverse Proxy with wovenet
 
 [简体中文](./README_zh.md)
 
-This feature provides similar functionality to professional NAT traversal tools like [frp](https://github.com/fatedier/frp) and [ngrok](https://ngrok.com). 
+This feature provides similar functionality to professional NAT Reverse Proxy tools like [frp](https://github.com/fatedier/frp) and [ngrok](https://ngrok.com). 
 
 ## Environment Information
 
