@@ -5,6 +5,8 @@ import (
 	"net/url"
 	"slices"
 	"strings"
+
+	"github.com/kungze/wovenet/internal/crypto"
 )
 
 type Config struct {
@@ -12,7 +14,7 @@ type Config struct {
 	Mqtt     *mqttConfig `mapstructure:"mqtt"`
 }
 
-func CheckAndSetDefaultConfig(config *Config) error {
+func CheckAndSetDefaultConfig(config *Config, cryptoCfg *crypto.Config) error {
 	if config == nil {
 		return fmt.Errorf("messageChannel is required")
 	}
@@ -21,7 +23,7 @@ func CheckAndSetDefaultConfig(config *Config) error {
 	}
 	if config.Protocol == strings.ToLower(MQTT) {
 		if config.Mqtt.Topic == "" {
-			return fmt.Errorf("the mqtt topic must be set")
+			config.Mqtt.Topic = fmt.Sprintf("github.com/kungze/wovenet/message-topic-%s", cryptoCfg.Key)
 		}
 		if config.Mqtt.BrokerServer == "" {
 			config.Mqtt.BrokerServer = "mqtt://mqtt.eclipseprojects.io:1883"
