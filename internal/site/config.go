@@ -31,7 +31,7 @@ func CheckAndSetDefaultConfig(config *Config) error {
 		return err
 	}
 
-	if err := message.CheckAndSetDefaultConfig(config.MessageChannel); err != nil {
+	if err := message.CheckAndSetDefaultConfig(config.MessageChannel, config.Crypto); err != nil {
 		return err
 	}
 

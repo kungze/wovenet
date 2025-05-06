@@ -34,9 +34,12 @@ messageChannel:
     # In other words, the same topic sites will join the same network
     # **If you don't change this value**, you may connect to other sites network, which may cause
     # information leak
+    # If you left this empty, wovenet will automatically generate the value,
+    # the value format: github.com/kungze/wovenet/message-topic-<crypto.key>
     # NOTE: 重要提示：强烈建议你修改这个值（不要使用这个默认值）
     # 相同 topic 的站点之间会尝试互相建立隧道。
     # **如果你不修改这个值**可能会连接到其他的站点网络，造成信息的泄露
+    # 如果设置为空，将会自动生成一个 topic，格式为：github.com/kungze/wovenet/message-topic-<crypto.key>
     topic: "kungze/wovenet/your-own-private-topic"
 
 tunnel:
