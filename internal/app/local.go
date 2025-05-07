@@ -4,14 +4,16 @@ import (
 	"fmt"
 	"net"
 	"strings"
+
+	"github.com/kungze/wovenet/internal/tunnel"
 )
 
 type localApp struct {
 	config LocalExposedAppConfig
 }
 
-// GetConnection get a connection which connect to the local app
-func (la *localApp) GetConnection(socket string) (net.Conn, error) {
+// StartDataConverter start a converter to transfer data between tunnel stream and local app
+func (la *localApp) StartDataConverter(stream tunnel.Stream, socket string, remainingData []byte) error {
 	if la.config.Mode == SINGLE {
 		socket = la.config.AppSocket
 	}
@@ -21,27 +23,47 @@ func (la *localApp) GetConnection(socket string) (net.Conn, error) {
 	case RANGE:
 		s := strings.SplitN(socket, ":", 2)
 		if len(s) != 2 {
-			return nil, fmt.Errorf("the socket: %s is invalid, the format must be protocol:ipaddr:port", socket)
+			return fmt.Errorf("the socket: %s is invalid, the format must be protocol:ipaddr:port", socket)
 		}
 		addr, port, err := net.SplitHostPort(s[1])
 		if err != nil {
-			return nil, fmt.Errorf("failed to split socket: %s to addr and port, error: %w", socket, err)
+			return fmt.Errorf("failed to split socket: %s to addr and port, error: %w", socket, err)
 		}
 		if !isIPInRange(addr, la.config.AddressRange) || !isPortInRange(port, la.config.PortRange) {
-			return nil, fmt.Errorf("can not access the remote site specified socket: %s, it is not allowed", socket)
+			return fmt.Errorf("can not access the remote site specified socket: %s, it is not allowed", socket)
 		}
 	default:
-		return nil, fmt.Errorf("app '%s' has invalid mode: %s", la.config.AppName, la.config.Mode)
+		return fmt.Errorf("app '%s' has invalid mode: %s", la.config.AppName, la.config.Mode)
 	}
 	s := strings.SplitN(socket, ":", 2)
 	if len(s) != 2 {
-		return nil, fmt.Errorf("the appSocket: %s is invalid, the format must be protocol:ipaddr:port", la.config.AppSocket)
+		return fmt.Errorf("the appSocket: %s is invalid, the format must be protocol:ipaddr:port", la.config.AppSocket)
 	}
 	conn, err := net.Dial(strings.ToLower(s[0]), s[1])
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return conn, nil
+	if len(remainingData) > 0 {
+		n, err := conn.Write(remainingData)
+		if err != nil {
+			return fmt.Errorf("failed to write data to local app: %s, error: %w", la.config.AppName, err)
+		}
+		if n < len(remainingData) {
+			return fmt.Errorf("can not write all remaining data to local app: %s", la.config.AppName)
+		}
+	}
+	go la.startConverter(stream, conn)
+	return nil
+}
+
+func (la *localApp) startConverter(stream tunnel.Stream, conn net.Conn) {
+	c := converter{
+		conn:    conn,
+		stream:  stream,
+		appType: localAppType,
+		appName: la.config.AppName,
+	}
+	c.Start()
 }
 
 func newLocalApp(config LocalExposedAppConfig) *localApp {

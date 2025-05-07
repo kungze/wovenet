@@ -3,9 +3,9 @@ package app
 import (
 	"context"
 	"fmt"
-	"io"
 
 	"github.com/kungze/wovenet/internal/logger"
+	"github.com/kungze/wovenet/internal/tunnel"
 )
 
 type AppManager struct {
@@ -21,15 +21,23 @@ func (am *AppManager) GetExposedApps() []LocalExposedApp {
 	return apps
 }
 
-// ConnectToLocalApp get a connection which connect to the local app
-func (am *AppManager) ConnectToLocalApp(appName string, socket string) (io.ReadWriteCloser, error) {
+// TransferDataToLocalApp transfer data between tunnel stream and local app service
+// appName the local app's name which the remote site's app client want to connect to
+// socket if the local app's mode is range (usually have multiple socket), the socket specifies that connect to which socket
+// stream tunnel stream
+// remainingData the extra data except handshake data during handshake period, it come from remote site's app client, we need to
+// write it to local app service
+func (am *AppManager) TransferDataToLocalApp(appName string, socket string, stream tunnel.Stream, remainingData []byte) error {
 	log := logger.GetDefault()
 	app, ok := am.localExposedApps[appName]
 	if !ok {
 		log.Error("local app can not found", "localApp", appName)
-		return nil, fmt.Errorf("app: %s can not found", appName)
+		return fmt.Errorf("app: %s can not found", appName)
 	}
-	return app.GetConnection(socket)
+	if err := app.StartDataConverter(stream, socket, remainingData); err != nil {
+		log.Error("failed to start data converter", "error", err, "localApp", appName)
+	}
+	return nil
 }
 
 // ProcessNewRemoteSite when a new remote site connected successfully, we

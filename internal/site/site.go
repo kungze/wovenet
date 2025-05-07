@@ -5,7 +5,6 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"io"
 	"sync"
 	"time"
 
@@ -201,10 +200,9 @@ func (s *Site) onRemoteSiteConnected(ctx context.Context, remoteSite string) {
 	s.appManager.ProcessNewRemoteSite(ctx, remoteSite, info.(*siteInfo).ExposedApps, s.onNewClientConnection)
 }
 
-// onNewClientConnection callback function, which will be called when an external client connects to the
-// local socket which is listened for remote app
-func (s *Site) onNewClientConnection(remoteSite string, appName string, appSocket string, conn io.ReadWriteCloser) {
-	defer conn.Close() //nolint:errcheck
+// onNewClientConnection callback function, which will be called when an external app client
+// connects to the local socket which is listened for remote app
+func (s *Site) onNewClientConnection(remoteSite string, appName string, appSocket string) tunnel.Stream {
 	log := logger.GetDefault()
 
 	// Open a new stream in the tunnel which link the local site and the remote site
@@ -213,20 +211,19 @@ func (s *Site) onNewClientConnection(remoteSite string, appName string, appSocke
 	stream, err := s.tunnelManager.OpenNewStream(s.ctx, remoteSite)
 	if err != nil {
 		log.Error("failed to open a new stream", "remoteSite", remoteSite, "error", err)
-		return
+		return nil
 	}
-	defer stream.Close() //nolint:errcheck
 
 	handShake, err := json.Marshal(AppInfo{Name: appName, Socket: appSocket})
 	if err != nil {
 		log.Error("failed to marshal app info", "error", err)
-		return
+		return nil
 	}
 
 	encrBuf, err := s.crypto.Encrypt(handShake)
 	if err != nil {
 		log.Error("failed to encrypt handshake data", "error", err)
-		return
+		return nil
 	}
 
 	// Prepare the handshake data, to tell remote site we want to connect to which app
@@ -238,48 +235,14 @@ func (s *Site) onNewClientConnection(remoteSite string, appName string, appSocke
 	if err != nil {
 		log.Error("failed to write handshake data to app stream",
 			"remoteSite", remoteSite, "remoteApp", appName, "error", err)
-		return
+		return nil
 	}
 	if n != len(data)+2 {
 		log.Error("the length of handshake data is valid", "expectedLen", len(data)+2, "actualLen", n)
-		return
+		return nil
 	}
 
-	wg := sync.WaitGroup{}
-	wg.Add(2)
-	go func() {
-		defer func() {
-			log.Warn("the coroutine which copy data from tunnel stream to local client exit",
-				"remoteSite", remoteSite, "remoteApp", appName)
-			_ = conn.Close()
-			_ = stream.Close()
-		}()
-		log.Info("start to copy data from tunnel stream to local client",
-			"remoteSite", remoteSite, "remoteApp", appName)
-		defer wg.Done()
-		_, err := io.Copy(conn, stream)
-		if err != nil {
-			log.Error("failed to copy data from tunnel stream to local client",
-				"remoteSite", remoteSite, "remoteApp", appName, "error", err)
-		}
-	}()
-	go func() {
-		defer func() {
-			log.Warn("the coroutine which copy data from local client to tunnel stream exit",
-				"remoteSite", remoteSite, "remoteApp", appName)
-			_ = conn.Close()
-			_ = stream.Close()
-		}()
-		log.Info("start to copy data from local client to tunnel stream",
-			"remoteSite", remoteSite, "remoteApp", appName)
-		defer wg.Done()
-		_, err := io.Copy(stream, conn)
-		if err != nil {
-			log.Error("failed to copy data from local client to tunnel stream",
-				"remoteSite", remoteSite, "remoteApp", appName, "error", err)
-		}
-	}()
-	wg.Wait()
+	return stream
 }
 
 // onNewStream call function, which will be called when a new stream was accepted
@@ -288,7 +251,6 @@ func (s *Site) onNewClientConnection(remoteSite string, appName string, appSocke
 func (s *Site) onNewStream(stream tunnel.Stream) {
 	log := logger.GetDefault()
 	log.Info("a new stream was accepted")
-	defer stream.Close() //nolint:errcheck
 	// Read handshake data, the handshake data indicates the remote client
 	// want to access which app
 	buff := make([]byte, 1024)
@@ -325,48 +287,13 @@ func (s *Site) onNewStream(stream tunnel.Stream) {
 	}
 
 	log.Info("try to connect to local app", "localApp", appInfo.Name)
-	conn, err := s.appManager.ConnectToLocalApp(appInfo.Name, appInfo.Socket)
+	// buff[dataLen+2:n] the extra data except handshake data (the extra data come from app client
+	// of remote site, we need to write it to app service)
+	err = s.appManager.TransferDataToLocalApp(appInfo.Name, appInfo.Socket, stream, buff[dataLen+2:n])
 	if err != nil {
 		log.Error("failed to connect to local app", "localApp", appInfo.Name, "error", err)
 		return
 	}
-	defer conn.Close() //nolint:errcheck
-	if n > int(dataLen+2) {
-		_, err := conn.Write(buff[dataLen+2 : n])
-		if err != nil {
-			log.Error("failed to write data to local app", "localApp", appInfo.Name, "error", err)
-			return
-		}
-	}
-	wg := sync.WaitGroup{}
-	wg.Add(2)
-	go func() {
-		defer func() {
-			log.Warn("the coroutine which copy data from tunnel stream to local app exit", "localApp", appInfo.Name)
-			_ = conn.Close()
-			_ = stream.Close()
-		}()
-		log.Info("start to copy data from tunnel stream to local app", "localApp", appInfo.Name)
-		defer wg.Done()
-		_, err := io.Copy(conn, stream)
-		if err != nil {
-			log.Error("failed to copy data from tunnel stream to local app", "localApp", appInfo.Name)
-		}
-	}()
-	go func() {
-		defer func() {
-			log.Warn("the coroutine which copy data from local app to tunnel stream exit", "localApp", appInfo.Name)
-			_ = conn.Close()
-			_ = stream.Close()
-		}()
-		log.Info("start to copy data from local app to tunnel stream", "localApp", appInfo.Name)
-		defer wg.Done()
-		_, err := io.Copy(stream, conn)
-		if err != nil {
-			log.Error("failed to copy data from local app to tunnel stream", "localApp", appInfo.Name)
-		}
-	}()
-	wg.Wait()
 }
 
 func NewSite(ctx context.Context) (*Site, error) {
