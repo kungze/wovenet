@@ -3,7 +3,6 @@ package app
 import (
 	"context"
 	"fmt"
-	"io"
 	"net"
 	"os"
 	"path/filepath"
@@ -11,9 +10,13 @@ import (
 	"sync/atomic"
 
 	"github.com/kungze/wovenet/internal/logger"
+	"github.com/kungze/wovenet/internal/tunnel"
 )
 
-type ClientConnectedCallback func(remoteSite string, appName string, appSocket string, conn io.ReadWriteCloser)
+// ClientConnectedCallback callback function, which will be called when an external app client
+// connects to the local socket which is listened for remote app.
+// The function will open a tunnel stream for the external app client's connection
+type ClientConnectedCallback func(remoteSite string, appName string, appSocket string) tunnel.Stream
 
 type remoteApp struct {
 	config   RemoteAppConfig
@@ -69,7 +72,17 @@ func (ra *remoteApp) listen(ctx context.Context, callback ClientConnectedCallbac
 					return
 				}
 				log.Info("a new client connection request incoming", "clientAddr", conn.RemoteAddr().String(), "remoteApp", ra.config.AppName)
-				go callback(ra.config.SiteName, ra.config.AppName, ra.config.AppSocket, conn)
+				// go callback(ra.config.SiteName, ra.config.AppName, ra.config.AppSocket, conn)
+				go func() {
+					stream := callback(ra.config.SiteName, ra.config.AppName, ra.config.AppSocket)
+					if stream == nil {
+						log.Info("failed to open tunnel stream for app client", "clientAddr", conn.LocalAddr(), "remoteSite", ra.config.SiteName, "appName", ra.config.AppName)
+						return
+					}
+					c := converter{conn: conn, stream: stream, appType: remoteAppType, remoteSite: ra.config.SiteName, appName: ra.config.AppName}
+					log.Info("start to transfer data between tcp/unix connection and tunnel stream for app client", "clientAddr", conn.LocalAddr(), "remoteSite", ra.config.SiteName, "appName", ra.config.AppName)
+					c.Start()
+				}()
 			}
 		}
 	}()

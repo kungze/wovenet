@@ -9,3 +9,10 @@ const (
 	TCP  string = "tcp"
 	UNIX string = "unix"
 )
+
+type AppType string
+
+const (
+	localAppType  AppType = "localExposedApp"
+	remoteAppType AppType = "remoteApp"
+)
