@@ -46,12 +46,7 @@ func (s *Site) Start(ctx context.Context) error {
 		return nil
 	}
 
-	// Get the local listener sockets for others sites to connect to establish tunnels
-	sockets, err := s.tunnelManager.GetLocalSocketInfos()
-	if err != nil {
-		log.Error("failed to get tunnel local sockets", "error", err)
-		return err
-	}
+	sockets := s.tunnelManager.GetLocalSocketInfos()
 	exposedApps := s.appManager.GetExposedApps()
 	data := siteInfo{
 		TunnelListenerSockets: sockets,
@@ -59,7 +54,7 @@ func (s *Site) Start(ctx context.Context) error {
 	}
 	// Announce a new site online with the site's base info
 	// The first message is to request exchange the base information with each other sites
-	err = s.msgClient.BroadcastMessage(ctx, message.ExchangeInfoRequest, data)
+	err := s.msgClient.BroadcastMessage(ctx, message.ExchangeInfoRequest, data)
 	if err != nil {
 		log.Error("failed to publish message", "error", err)
 		return err
@@ -92,18 +87,13 @@ func (s *Site) onExchangeInfoMessage(payload *message.Payload) (any, message.Mes
 	for _, socket := range info.TunnelListenerSockets {
 		err = s.tunnelManager.AddRemoteSocket(s.ctx, payload.SiteName, socket)
 		if err != nil {
-			log.Error("failed to establish tunnel with remote site", "remoteSite", payload.SiteName, "error", err)
-			return nil, "", err
+			log.Warn("failed to establish tunnel with remote site", "remoteSite", payload.SiteName, "error", err)
 		}
 	}
 
 	// Respond the request message with our base information
 	if payload.Kind == message.ExchangeInfoRequest {
-		sockets, err := s.tunnelManager.GetLocalSocketInfos()
-		if err != nil {
-			log.Error("failed to get tunnel local sockets", "error", err)
-			return nil, "", err
-		}
+		sockets := s.tunnelManager.GetLocalSocketInfos()
 		exposedApps := s.appManager.GetExposedApps()
 
 		return &siteInfo{
