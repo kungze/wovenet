@@ -140,19 +140,22 @@ func (tm *TunnelManager) DelRemoteSocket(ctx context.Context, remoteSite string,
 
 // GetLocalSocketInfos get the local tunnel socket infos, so that the
 // remote sites can connect to me by these sockets
-func (tm *TunnelManager) GetLocalSocketInfos() ([]SocketInfo, error) {
+func (tm *TunnelManager) GetLocalSocketInfos() []SocketInfo {
+	log := logger.GetDefault()
 	socketInfos := []SocketInfo{}
 	for _, socket := range tm.localSockets {
 		if !socket.IsActive() {
+			log.Warn("the local tunnel socket is not active", "tunnelSocket", socket.config)
 			continue
 		}
 		info, err := socket.GetSocketInfo()
 		if err != nil {
-			return nil, err
+			log.Warn("failed to get local tunnel socket info", "error", err, "tunnelSocket", socket.config)
+			continue
 		}
 		socketInfos = append(socketInfos, *info)
 	}
-	return socketInfos, nil
+	return socketInfos
 }
 
 func (tm *TunnelManager) GetLocalSocketInfoById(id string) (*SocketInfo, error) {
