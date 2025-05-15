@@ -1,0 +1,281 @@
+basePath: /api/v1
+definitions:
+  app.LocalExposedApp:
+    properties:
+      name:
+        type: string
+    type: object
+  app.LocalExposedAppModel:
+    properties:
+      addressRange:
+        items:
+          type: string
+        type: array
+      appName:
+        type: string
+      appSocket:
+        type: string
+      mode:
+        type: string
+      portRange:
+        items:
+          type: string
+        type: array
+    type: object
+  app.RemoteAppModel:
+    properties:
+      appName:
+        type: string
+      appSocket:
+        type: string
+      localSocket:
+        type: string
+      siteName:
+        type: string
+    type: object
+  restfulapi.HTTPError:
+    properties:
+      code:
+        example: 400
+        type: integer
+      message:
+        example: status bad request
+        type: string
+    type: object
+  site.RemoteSiteModel:
+    properties:
+      exposedApps:
+        items:
+          $ref: '#/definitions/app.LocalExposedApp'
+        type: array
+      siteName:
+        type: string
+      tunnelSockets:
+        items:
+          $ref: '#/definitions/tunnel.SocketInfo'
+        type: array
+    type: object
+  tunnel.SocketInfo:
+    properties:
+      address:
+        type: string
+      dynamicPublicAddress:
+        type: boolean
+      id:
+        type: string
+      port:
+        type: integer
+      protocol:
+        $ref: '#/definitions/tunnel.TransportProtocol'
+    type: object
+  tunnel.TransportProtocol:
+    enum:
+    - quic
+    - SCTP
+    type: string
+    x-enum-varnames:
+    - QUIC
+    - SCTP
+info:
+  contact:
+    email: jeffyang512@163.com
+    name: JffYang
+    url: https://github.com/kungze/wovenet/issues
+  description: This is wovenet api definitions
+  license:
+    name: MIT
+    url: https://github.com/kungze/wovenet/blob/main/LICENSE
+  termsOfService: http://swagger.io/terms/
+  title: Wovenet API
+  version: "1.0"
+paths:
+  /localExposedApps:
+    get:
+      consumes:
+      - application/json
+      description: List all local exposed apps
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/app.LocalExposedAppModel'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/restfulapi.HTTPError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/restfulapi.HTTPError'
+      summary: List local exposed apps
+      tags:
+      - localExposedApps
+  /localExposedApps/{appName}:
+    get:
+      consumes:
+      - application/json
+      description: Show a local exposed app by appName
+      parameters:
+      - description: local exposed app name
+        in: path
+        name: appName
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/app.LocalExposedAppModel'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/restfulapi.HTTPError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/restfulapi.HTTPError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/restfulapi.HTTPError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/restfulapi.HTTPError'
+      summary: Show a local exposed app
+      tags:
+      - localExposedApps
+  /remoteApps:
+    get:
+      consumes:
+      - application/json
+      description: List all remote apps
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/app.RemoteAppModel'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/restfulapi.HTTPError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/restfulapi.HTTPError'
+      summary: List remote apps
+      tags:
+      - remoteApps
+  /remoteApps/{appName}:
+    get:
+      consumes:
+      - application/json
+      description: Show a remote app by appName
+      parameters:
+      - description: remote app name
+        in: path
+        name: appName
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/app.RemoteAppModel'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/restfulapi.HTTPError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/restfulapi.HTTPError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/restfulapi.HTTPError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/restfulapi.HTTPError'
+      summary: Show a remote app
+      tags:
+      - remoteApps
+  /remoteSites:
+    get:
+      consumes:
+      - application/json
+      description: Get all remote sites
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/site.RemoteSiteModel'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/restfulapi.HTTPError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/restfulapi.HTTPError'
+      summary: List remote sites
+      tags:
+      - remoteSites
+  /remoteSites/{siteName}:
+    get:
+      consumes:
+      - application/json
+      description: Get a remote site's details by siteName
+      parameters:
+      - description: remote site name
+        in: path
+        name: siteName
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/site.RemoteSiteModel'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/restfulapi.HTTPError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/restfulapi.HTTPError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/restfulapi.HTTPError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/restfulapi.HTTPError'
+      summary: Get a remote site's details
+      tags:
+      - remoteSites
+securityDefinitions:
+  BasicAuth:
+    type: basic
+swagger: "2.0"

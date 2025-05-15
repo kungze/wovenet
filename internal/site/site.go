@@ -14,7 +14,6 @@ import (
 	"github.com/kungze/wovenet/internal/logger"
 	"github.com/kungze/wovenet/internal/message"
 	"github.com/kungze/wovenet/internal/tunnel"
-	"github.com/spf13/viper"
 )
 
 // AppInfo it will be packaged as the handshake data in the first packet of each app stream.
@@ -286,19 +285,8 @@ func (s *Site) onNewStream(stream tunnel.Stream) {
 	}
 }
 
-func NewSite(ctx context.Context) (*Site, error) {
+func NewSite(ctx context.Context, config Config) (*Site, error) {
 	log := logger.GetDefault()
-	var config Config
-	err := viper.Unmarshal(&config)
-	if err != nil {
-		log.Error("failed to unmarshal the config into a struct", "error", err)
-		return nil, err
-	}
-
-	err = CheckAndSetDefaultConfig(&config)
-	if err != nil {
-		return nil, fmt.Errorf("config error: %w", err)
-	}
 
 	crypto, err := crypto.NewCrypto([]byte(config.Crypto.Key))
 	if err != nil {

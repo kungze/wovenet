@@ -170,3 +170,31 @@ remoteApps:
   appName: vdi
   appSocket: tcp:10.0.2.123:35900
   localSocket: tcp:10.0.2.3:5900
+
+restfulApi:
+  # Whether to enable the restful api
+  # 是否启用 restful api
+  enabled: true
+  # The address and port to listen on
+  # 监听的地址和端口
+  listenAddr: 0.0.0.0:18080
+  # The log file, if not set, logs will be output to stdout(typically the screen)
+  # 日志文件，如果未设置，日志将会输出到 stdout（一般是屏幕）
+  logger:
+    file: "/var/log/wovenet/resftul-api.log"
+  # Whether to enable the tls
+  # 是否启用 tls
+  tls:
+    enabled: false
+    # The key file
+    # 密钥文件
+    key: ""
+    # The certificate file
+    # 证书文件
+    cert: ""
+  auth:
+    # Currently, we only support basic auth
+    # 目前我们只支持基础认证
+    basicAuth:
+    - user: "admin"
+      password: "N0tSecure-Ch@ngeMe"

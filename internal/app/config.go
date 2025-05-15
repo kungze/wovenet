@@ -5,18 +5,18 @@ import (
 )
 
 type LocalExposedAppConfig struct {
-	Mode         string   `mapstructure:"mode"`
-	AppName      string   `mapstructure:"appName"`
-	AppSocket    string   `mapstructure:"appSocket"`
-	PortRange    []string `mapstructure:"portRange"`
-	AddressRange []string `mapstructure:"addressRange"`
+	Mode         string   `json:"mode" mapstructure:"mode"`
+	AppName      string   `json:"appName" mapstructure:"appName"`
+	AppSocket    string   `json:"appSocket" mapstructure:"appSocket"`
+	PortRange    []string `json:"portRange" mapstructure:"portRange"`
+	AddressRange []string `json:"addressRange" mapstructure:"addressRange"`
 }
 
 type RemoteAppConfig struct {
-	SiteName    string `mapstructure:"siteName"`
-	AppName     string `mapstructure:"appName"`
-	LocalSocket string `mapstructure:"localSocket"`
-	AppSocket   string `mapstructure:"appSocket"`
+	SiteName    string `json:"siteName" mapstructure:"siteName"`
+	AppName     string `json:"appName" mapstructure:"appName"`
+	LocalSocket string `json:"localSocket" mapstructure:"localSocket"`
+	AppSocket   string `json:"appSocket" mapstructure:"appSocket"`
 }
 
 func CheckLocalExposedAppConfig(configs []*LocalExposedAppConfig) error {
