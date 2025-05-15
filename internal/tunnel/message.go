@@ -1,11 +1,11 @@
 package tunnel
 
 type SocketInfo struct {
-	Address              string            `mapstructure:"address"`
-	Port                 uint16            `mapstructure:"port"`
-	Protocol             TransportProtocol `mapstructure:"protocol"`
-	Id                   string            `mapstructure:"id"`
-	DynamicPublicAddress bool              `mapstructure:"dynamicPublicAddress"`
+	Address              string            `json:"address" mapstructure:"address"`
+	Port                 uint16            `json:"port" mapstructure:"port"`
+	Protocol             TransportProtocol `json:"protocol" mapstructure:"protocol"`
+	Id                   string            `json:"id" mapstructure:"id"`
+	DynamicPublicAddress bool              `json:"dynamicPublicAddress" mapstructure:"dynamicPublicAddress"`
 }
 
 type SocketInfoRequest struct {
