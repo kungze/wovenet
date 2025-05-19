@@ -60,15 +60,17 @@ applications by these local sockets.`,
 			log.Error("failed to unmarshal the config into a struct for restful api", "error", err)
 			return err
 		}
-		go func() {
-			defer cancel()
-			err := restfulapi.SetupHTTPServer(&apiConfig, site, site.GetAppManager())
-			if err != nil {
-				log.Error("failed to setup restful api server", "error", err)
-				return
-			}
-		}()
-		log.Info("restful api server started", "address", apiConfig.ListenAddr)
+		if apiConfig.Enabled {
+			log.Info("restful api server is enabled", "address", apiConfig.ListenAddr)
+			go func() {
+				defer cancel()
+				err := restfulapi.SetupHTTPServer(&apiConfig, site, site.GetAppManager())
+				if err != nil {
+					log.Error("failed to setup restful api server", "error", err)
+					return
+				}
+			}()
+		}
 		<-ctx.Done()
 		log.Error("local site exit")
 		return nil
